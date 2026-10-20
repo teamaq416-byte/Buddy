@@ -1,0 +1,25 @@
+{
+  "name": "buddy-desktop",
+  "productName": "Buddy",
+  "version": "2.0.4",
+  "description": "Buddy \u2014 local AI companion (Electron edition)",
+  "main": "src/main.js",
+  "author": "Bolt",
+  "license": "MIT",
+  "private": true,
+  "buddy": {
+    "updateRepo": "teamaq416-byte/Buddy"
+  },
+  "scripts": {
+    "start": "electron .",
+    "test": "node tests/cli.js && node tests/memory.js && node tests/planner.js && node tests/assistant.js && node tests/remote.js && node tests/gchat.js && node tests/e2e.js",
+    "package:win": "node scripts/package-win.js",
+    "setup": "node scripts/make-setup.js"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "playwright": "^1.47.0",
+    "resedit": "^2.0.0",
+    "extract-zip": "^2.0.1"
+  }
+}

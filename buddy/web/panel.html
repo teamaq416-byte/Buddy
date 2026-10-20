@@ -1,0 +1,1146 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Buddy</title>
+<style>
+:root{
+  --bg:#16171b; --bg2:#1c1d22; --bg3:#232429; --bg4:#2d2e35; --line:rgba(255,255,255,.07); --line2:rgba(255,255,255,.11);
+  --fg:#ececf1; --muted:#a3a4ae; --dim:#6d6e79; --accent:#7dd3fc; --accent-rgb:125,211,252;
+  --brand:#7c9cff; --brand-ink:#0f1220; --brand-rgb:124,156,255;
+  --ok:#4ade80; --warn:#f5b748; --bad:#f87171; --radius:12px;
+  --font:"Segoe UI Variable Text","Segoe UI",system-ui,-apple-system,sans-serif; --display:"Segoe UI Variable Display","Segoe UI",system-ui,sans-serif; --mono:"Cascadia Mono",Consolas,ui-monospace,monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--fg);font:13.5px/1.5 var(--font);overflow:hidden;-webkit-font-smoothing:antialiased;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid rgba(var(--brand-rgb),.7);outline-offset:1px}
+input,textarea,select{font:inherit;color:inherit}
+::-webkit-scrollbar{width:10px}::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:10px;border:3px solid var(--bg)}::-webkit-scrollbar-track{background:transparent}
+.app{display:flex;flex-direction:column;height:100%;border:1px solid var(--line2);background:var(--bg)}
+code{font-family:var(--mono);font-size:12px;background:var(--bg3);padding:1px 5px;border-radius:5px}
+
+/* header */
+.hdr{display:flex;align-items:center;gap:11px;padding:12px 10px 10px 16px;background:var(--bg)}
+.hdr button{-webkit-app-region:no-drag}
+.face{width:30px;height:30px;border-radius:50%;background:#f3f4fb;position:relative;flex:none;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.face::before,.face::after{content:"";position:absolute;top:9px;width:4.5px;height:10px;border-radius:3px;background:#181b28;transition:height .12s}
+.face::before{left:9px}.face::after{right:9px}
+.face.blink::before,.face.blink::after{height:2px;top:13px}
+.face.talk{animation:talk .5s ease-in-out infinite}
+@keyframes talk{50%{transform:scale(1.06,.94)}}
+.hdr .who{flex:1;min-width:0;line-height:1.3}
+.hdr .name{font:600 15px/1.25 var(--display);letter-spacing:-.005em}
+.hdr .status{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtn{display:flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:8px;border:1px solid var(--line2);color:var(--muted);font-size:12px;transition:background .15s,color .15s}
+.hbtn:hover{background:var(--bg3);color:var(--fg)}
+.hbtn svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--dim);flex:none}
+.dot.on{background:var(--ok)}.dot.bad{background:var(--bad)}.dot.ok{background:var(--ok)}.dot.pulse{background:var(--warn);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;color:var(--muted);transition:background .15s,color .15s;flex:none}
+.icon:hover{background:var(--bg3);color:var(--fg)}
+.icon svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.drag{-webkit-app-region:drag}
+
+/* tabs */
+.nav{display:flex;gap:2px;padding:0 10px;border-bottom:1px solid var(--line)}
+.nav button{position:relative;display:flex;align-items:center;gap:7px;padding:9px 10px 10px;color:var(--muted);font-size:12.5px;font-weight:500;transition:color .15s}
+.nav button:hover{color:var(--fg)}
+.nav button.active{color:var(--fg)}
+.nav button.active::after{content:"";position:absolute;left:8px;right:8px;bottom:-1px;height:2px;border-radius:2px;background:var(--brand)}
+.nav svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+/* provider picker (inside the composer) */
+.pbar{position:relative}
+.pick{display:flex;align-items:center;gap:6px;height:28px;padding:0 8px 0 9px;border-radius:8px;color:var(--muted);font-size:12.5px;font-weight:500;transition:background .15s,color .15s}
+.pick:hover{background:var(--bg4);color:var(--fg)}
+.pick .dot{background:var(--p,var(--accent))}
+.pick svg{width:13px;height:13px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.seg{position:absolute;left:0;bottom:calc(100% + 8px);min-width:190px;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:5px;box-shadow:0 14px 36px rgba(0,0,0,.55);display:none;flex-direction:column;gap:1px;z-index:5}
+.seg.open{display:flex}
+.seg .segh{font-size:11.5px;color:var(--dim);padding:4px 9px 5px}
+.seg button{display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:8px;font-size:13px;color:var(--fg);text-align:left}
+.seg button:hover{background:var(--bg4)}
+.seg button .dot{background:var(--p)}
+.seg button .l{flex:1}.seg button .ck{color:var(--brand);font-size:12px}
+
+/* views */
+.view{flex:1;overflow:auto;display:none;padding:16px 16px 8px;scroll-behavior:smooth}
+.view.active{display:block}
+.empty{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);text-align:center;padding:30px}
+.empty .face{width:52px;height:52px;margin-bottom:6px}.empty .face::before,.empty .face::after{top:16px;width:7.5px;height:17px;border-radius:5px}.empty .face::before{left:16px}.empty .face::after{right:16px}
+.empty h3{color:var(--fg);font:600 17px/1.3 var(--display)}
+.ideas{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px;width:100%;max-width:400px}
+.idea{display:flex;flex-direction:column;gap:2px;text-align:left;padding:11px 12px;border-radius:12px;background:var(--bg2);border:1px solid var(--line);transition:background .15s,border-color .15s}
+.idea:hover{background:var(--bg3);border-color:var(--line2)}
+.idea b{font-weight:600;font-size:13px;color:var(--fg)}.idea small{font-size:11.5px;color:var(--muted);line-height:1.4}
+.chip{background:transparent;border:1px solid var(--line2);border-radius:999px;padding:4px 11px;font-size:12px;color:var(--muted);cursor:pointer;transition:background .15s,color .15s}
+.chip:hover{background:var(--bg3);color:var(--fg)}
+
+/* messages */
+.msg{display:flex;flex-direction:column;margin:0 0 16px;animation:in .22s cubic-bezier(.2,.8,.2,1)}
+@keyframes in{from{opacity:0;transform:translateY(4px)}}
+.msg.user{align-items:flex-end}
+.msg.user .bubble .uimgs{display:grid;gap:3px;margin:-4px -9px 6px;border-radius:12px;overflow:hidden;max-width:300px}.msg.user .bubble .uimgs:last-child{margin-bottom:-4px}.msg.user .bubble .uimgs.n2,.msg.user .bubble .uimgs.n4{grid-template-columns:1fr 1fr}.msg.user .bubble .uimgs.n3{grid-template-columns:1fr 1fr 1fr}.msg.user .bubble .uimgs img{width:100%;max-height:300px;object-fit:cover;display:block;cursor:zoom-in}.msg.user .bubble .uimgs.n2 img,.msg.user .bubble .uimgs.n3 img,.msg.user .bubble .uimgs.n4 img{height:120px}
+.file.pic{border-radius:10px;padding:3px 6px 3px 3px}.file.pic img{width:34px;height:34px;border-radius:7px;object-fit:cover}
+.msg.user .bubble{background:var(--bg3);border:1px solid var(--line);border-radius:16px 16px 4px 16px;padding:8px 13px;max-width:84%;user-select:text;white-space:pre-wrap;word-break:break-word}
+.msg.ai .card{padding:0 2px;max-width:100%;user-select:text}
+.msg.ai .label{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--muted);margin-bottom:5px}
+.msg.ai .label b{color:var(--fg);font-weight:600}
+.msg.ai .label .dot{background:var(--p,var(--accent))}
+.msg.ai .label time{margin-left:auto;color:var(--dim);font-size:11.5px}
+.steps{display:flex;flex-direction:column;gap:4px;margin:4px 0 10px;padding:8px 10px;background:var(--bg2);border:1px solid var(--line);border-radius:10px}
+.step{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.step .ico{width:14px;height:14px;flex:none;display:grid;place-items:center}
+.step .ico svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.step.running .ico{color:var(--brand)}.step.running .ico svg{animation:spin 1s linear infinite}
+.step.done .ico{color:var(--ok)}.step.error .ico{color:var(--bad)}
+.step b{color:var(--fg);font-weight:600;min-width:42px}
+.step code{font-family:var(--mono);font-size:11.5px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:none;padding:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.body{word-break:break-word;line-height:1.6}
+.body p{margin:0 0 9px}.body p:last-child{margin:0}
+.body ul,.body ol{margin:0 0 9px 20px}.body li{margin:3px 0}
+.body h1,.body h2,.body h3{font:600 14px/1.4 var(--display);margin:10px 0 4px}
+.body a{color:var(--brand);text-decoration:none}.body a:hover{text-decoration:underline}
+.body pre{position:relative;background:#0f1013;border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:6px 0 10px;overflow:auto;font-family:var(--mono);font-size:12px;line-height:1.5}
+.body pre code{background:none;padding:0;font-size:12px}
+.body pre .copy{position:absolute;top:6px;right:6px;font-size:11px;color:var(--muted);background:var(--bg3);border-radius:6px;padding:2px 8px;opacity:0;transition:opacity .15s}
+.body pre:hover .copy{opacity:1}
+.imgs{display:grid;gap:4px;margin:2px 0 8px;max-width:340px}.imgs.n2,.imgs.n3,.imgs.n4{grid-template-columns:1fr 1fr}
+.img{position:relative;margin:0;background:#0f1013;border-radius:12px;overflow:hidden}
+.img img{display:block;width:100%;max-height:340px;object-fit:cover;cursor:zoom-in}.imgs.n2 .img img,.imgs.n3 .img img,.imgs.n4 .img img{height:150px}
+.img .dl{position:absolute;right:8px;bottom:8px;width:32px;height:32px;border-radius:50%;background:rgba(0,0,0,.55);display:grid;place-items:center}.img .dl:hover{background:rgba(0,0,0,.75)}.img .dl svg{width:16px;height:16px;fill:none;stroke:#fff;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.cursor{display:inline-block;width:7px;height:14px;background:var(--brand);border-radius:2px;vertical-align:-2px;margin-left:2px;animation:pulse .9s ease-in-out infinite}
+.msg.sys{align-items:center}
+.msg.sys .pill{display:flex;align-items:flex-start;gap:8px;background:transparent;border:1px solid var(--line);border-radius:10px;padding:6px 12px;font-size:12.5px;color:var(--muted);max-width:94%;white-space:pre-wrap;user-select:text}
+.msg.sys .pill>.face{display:none}
+.msg.sys .pill .chip{margin-left:6px}
+.msg.sys.error .pill{border-color:rgba(248,113,113,.35);background:rgba(248,113,113,.07);color:#fca5a5}
+/* permission requests: a clear card with the action and both choices */
+.msg.sys.perm{align-items:stretch}
+.msg.sys.perm .pill{display:block;max-width:100%;background:var(--bg2);border:1px solid var(--line);border-left:3px solid var(--warn);border-radius:10px;padding:10px 12px;color:var(--fg);white-space:normal}
+.msg.sys.perm .pill b{font-weight:600;display:block;font-size:13px}
+.msg.sys.perm .ph{display:flex;align-items:center;gap:8px;margin-bottom:4px;font-size:11.5px}
+.msg.sys.perm .tag{color:var(--warn);font-weight:600}
+.msg.sys.perm .svc{color:var(--dim);margin-left:auto;font-family:var(--mono)}
+.msg.sys.perm .pd{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--bg3);border-radius:6px;padding:5px 8px;margin-top:6px;white-space:pre-wrap;word-break:break-all;max-height:120px;overflow:auto}
+.msg.sys.perm .pr{font-size:12px;color:var(--muted);margin-top:5px}
+.msg.sys.perm .pa{display:flex;gap:6px;margin-top:10px}
+.msg.sys.perm .pa .btn{padding:5px 14px}
+.msg.sys.perm.settled .pill{border-left-color:var(--line2);background:transparent;padding:7px 12px}
+.msg.sys.perm.settled .pd,.msg.sys.perm.settled .pr{display:none}
+.msg.sys.perm.settled b{font-weight:500;color:var(--muted)}
+.msg.sys.perm.accepted .tag{color:var(--ok)}.msg.sys.perm.denied .tag{color:var(--bad)}
+kbd{font-family:var(--font);font-size:10.5px;border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+.divider{text-align:center;color:var(--dim);font-size:11.5px;margin:2px 0 16px}
+
+/* composer */
+.composer{border-top:1px solid var(--line);padding:10px 14px 10px;background:var(--bg);position:relative}
+.files{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.files:empty{display:none}
+.file{display:flex;align-items:center;gap:6px;background:var(--bg3);border:1px solid var(--line);border-radius:999px;padding:3px 6px 3px 9px;font-size:12px;max-width:100%}
+.file span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:180px;cursor:pointer}
+.file button{width:18px;height:18px;border-radius:50%;color:var(--muted);display:grid;place-items:center;font-size:14px;line-height:1}
+.file button:hover{background:var(--bg4);color:var(--fg)}
+.box{background:var(--bg2);border:1px solid var(--line2);border-radius:16px;padding:8px 8px 6px;display:flex;flex-direction:column;gap:2px;transition:border-color .15s,box-shadow .15s}
+.box .files{margin:0 0 4px}
+.box textarea{padding:4px 6px 6px}
+.tools{display:flex;align-items:center;gap:2px}
+.tools .sp{flex:1}
+.tools .icon{width:30px;height:28px}
+.box:focus-within{border-color:rgba(var(--brand-rgb),.6);box-shadow:0 0 0 3px rgba(var(--brand-rgb),.12)}
+textarea{flex:1;background:none;border:0;outline:0;resize:none;min-height:24px;max-height:160px;padding:7px 0;line-height:1.45;font-size:13.5px}
+textarea::placeholder{color:var(--dim)}
+.box textarea:focus-visible{outline:0}
+.mode{display:flex;height:28px;padding:2px;border-radius:9px;background:var(--bg3);border:1px solid var(--line);flex:none;margin-right:6px}
+.mode span{display:grid;place-items:center;padding:0 11px;border-radius:7px;font-size:12px;font-weight:600;color:var(--dim);transition:background .15s,color .15s}
+.mode:not(.on) span:first-child{background:var(--bg4);color:var(--fg)}
+.mode.on span:last-child{background:rgba(245,183,72,.2);color:var(--warn)}
+.mode:hover span{color:var(--muted)}.mode:not(.on):hover span:first-child,.mode.on:hover span:last-child{color:inherit}
+.send{width:32px;height:32px;border-radius:10px;background:var(--brand);color:var(--brand-ink);display:grid;place-items:center;flex:none;transition:transform .12s,filter .15s}
+.send:hover{filter:brightness(1.08)}.send:active{transform:scale(.94)}
+.send.stop{background:var(--bad)}
+.send svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.send.stop svg{fill:currentColor;stroke:none}
+.hint{display:flex;align-items:center;gap:6px;margin-top:7px;padding:0 4px;font-size:11.5px;color:var(--dim)}
+.hint .sp{flex:1}
+.hint #foot{color:var(--muted);display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hint #foot b{color:var(--fg);font-weight:500}
+.mtag{font-size:10.5px;font-weight:700;letter-spacing:.02em;padding:1px 6px;border-radius:5px;background:var(--bg4);color:var(--muted)}
+.mtag.do{background:rgba(245,183,72,.18);color:var(--warn)}
+.slash{position:absolute;left:14px;right:14px;bottom:100%;margin-bottom:6px;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:6px;box-shadow:0 12px 32px rgba(0,0,0,.5);display:none}
+.slash.show{display:block}
+.slash div{padding:6px 10px;border-radius:8px;font-size:12.5px;display:flex;gap:10px;cursor:pointer}
+.slash div.sel,.slash div:hover{background:var(--bg4)}
+.slash code{font-family:var(--mono);color:var(--brand);min-width:120px;background:none;padding:0}
+.slash span{color:var(--muted)}
+
+/* generic controls */
+.section{margin-bottom:22px}
+.section h4,.set-group>h4{font:600 12.5px/1.3 var(--font);color:var(--muted);margin:0 2px 8px}
+.row{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.row label{width:120px;color:var(--muted);font-size:12.5px;flex:none}
+.in{flex:1;min-width:0;background:var(--bg3);border:1px solid var(--line);border-radius:8px;padding:7px 10px;outline:0;transition:border-color .15s;font-size:13px}
+.in:focus{border-color:rgba(var(--brand-rgb),.6)}.in:focus-visible{outline:0;box-shadow:0 0 0 3px rgba(var(--brand-rgb),.12)}
+.btn{background:var(--bg3);border:1px solid var(--line2);border-radius:8px;padding:6px 13px;font-size:12.5px;font-weight:500;transition:background .15s,filter .15s;white-space:nowrap}
+.btn:disabled{opacity:.45;cursor:default;pointer-events:none}
+.btn:hover{background:var(--bg4)}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:transparent;font-weight:600}
+.btn.primary:hover{filter:brightness(1.08);background:var(--brand)}
+.btn.danger{color:var(--bad)}
+.toggle{display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px}
+.toggle input,input.sw{appearance:none;flex:none;width:36px;height:20px;border-radius:999px;background:var(--bg4);position:relative;transition:background .15s;cursor:pointer;margin:0}
+.toggle input::after,input.sw::after{content:"";position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#d7d8de;transition:transform .15s,background .15s}
+.toggle input:checked,input.sw:checked{background:var(--brand)}.toggle input:checked::after,input.sw:checked::after{transform:translateX(16px);background:#fff}
+input.sw:disabled{opacity:.4;cursor:default}
+.radio{display:flex;gap:2px;background:var(--bg3);border:1px solid var(--line);border-radius:9px;padding:2px}
+.radio button{padding:5px 12px;border-radius:7px;font-size:12.5px;color:var(--muted)}
+.radio button:hover{color:var(--fg)}
+.radio button.active{color:var(--fg);background:var(--bg4)}
+.note{font-size:12px;color:var(--muted);margin-top:-4px;margin-bottom:10px;line-height:1.5}
+.problem{color:var(--bad);font-size:12.5px;margin:6px 0}
+.saved{color:var(--ok);font-size:12.5px;margin:6px 0}
+
+/* settings: grouped cards, label + description on the left, control on the right */
+.set-group{margin-bottom:20px}
+.set-group>.card{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.srow{display:flex;align-items:center;gap:14px;padding:11px 14px;min-height:48px;cursor:default}
+label.srow{cursor:pointer}
+.srow+.srow,.srow+.sblock,.sblock+.srow,.sblock+.sblock{border-top:1px solid var(--line)}
+.srow .st{flex:1;min-width:0}
+.srow .st b{display:block;font-weight:500;font-size:13px}
+.srow .st small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:1px}
+.srow .in{flex:0 1 200px}
+.ctl{display:flex;gap:6px;align-items:center;flex:none}
+.sblock{padding:12px 14px}
+.sblock .note{margin:0 0 8px}
+.set-foot{position:sticky;bottom:-8px;margin:8px -16px -8px;padding:10px 16px;background:linear-gradient(to bottom,rgba(22,23,27,0),var(--bg) 30%);display:flex;align-items:center;gap:10px}
+.set-foot .ver{flex:1;color:var(--dim);font-size:12px}
+details.more>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;color:var(--fg);font-weight:500;font-size:13px}
+details.more>summary::-webkit-details-marker{display:none}
+details.more>summary::after{content:"";margin-left:auto;width:7px;height:7px;border-right:1.6px solid var(--muted);border-bottom:1.6px solid var(--muted);transform:rotate(45deg);transition:transform .15s}
+details.more[open]>summary::after{transform:rotate(225deg)}
+details.more>summary small{color:var(--muted);font-weight:400}
+
+/* tasks */
+.task{display:flex;align-items:flex-start;gap:10px;padding:9px 10px;border-radius:9px;transition:background .15s}
+.task:hover{background:var(--bg2)}
+.task input{appearance:none;width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line2);flex:none;margin-top:1px;cursor:pointer;display:grid;place-items:center;transition:background .15s,border-color .15s}
+.task input:checked{background:var(--brand);border-color:var(--brand)}
+.task input:checked::after{content:"";width:5px;height:9px;border:solid var(--brand-ink);border-width:0 2px 2px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.task span{flex:1;word-break:break-word}
+.task.done span{color:var(--dim);text-decoration:line-through}
+.task time{font-size:11.5px;color:var(--dim);flex:none}
+
+/* planner */
+.ptabs{display:flex;gap:2px;background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:3px;margin-bottom:14px}
+.ptabs button{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:6px 8px;border-radius:7px;font-size:12.5px;font-weight:500;color:var(--muted);transition:background .15s,color .15s}
+.ptabs button:hover{color:var(--fg)}.ptabs button.active{background:var(--bg4);color:var(--fg)}
+.ptabs .cnt{font-size:10.5px;font-weight:700;min-width:16px;padding:0 5px;border-radius:999px;background:rgba(var(--brand-rgb),.2);color:var(--brand);line-height:16px}.ptabs .cnt:empty{display:none}
+.pform{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.pform textarea.in{resize:vertical;min-height:64px;line-height:1.45}
+.prow{display:flex;gap:10px;align-items:flex-end}.prow>label{flex:1;display:flex;flex-direction:column;gap:5px;font-size:11.5px;color:var(--muted);min-width:0}
+.prow.end{justify-content:flex-end;align-items:center}.prow .radio{align-self:flex-start}
+.perr{flex:1;color:var(--bad);font-size:12px}
+.qchips{display:flex;gap:6px;flex-wrap:wrap}.qchips .chip.on{background:rgba(var(--brand-rgb),.16);border-color:rgba(var(--brand-rgb),.5);color:var(--fg)}
+.in[type=datetime-local],select.in{color-scheme:dark;width:100%}
+select.in{appearance:none;cursor:pointer;padding-right:26px;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M1 1l4 4 4-4' fill='none' stroke='%23a3a4ae' stroke-width='1.5'/></svg>");background-repeat:no-repeat;background-position:right 10px center}
+.ph4{font:600 12.5px/1.3 var(--font);color:var(--muted);margin:0 2px 8px}
+.pitem{display:flex;align-items:flex-start;gap:11px;padding:11px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;animation:in .22s cubic-bezier(.2,.8,.2,1)}
+.pitem.off{opacity:.62}
+.pico{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;flex:none}
+.pico svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.pico.bell{background:rgba(245,183,72,.14);color:var(--warn)}.pico.clock{background:rgba(var(--brand-rgb),.14);color:var(--brand)}
+.pitem .pt{flex:1;min-width:0}.pitem .pt b{display:block;font-weight:500;word-break:break-word}
+.pitem .pt small{display:flex;flex-wrap:wrap;align-items:center;gap:5px;color:var(--muted);font-size:12px;margin-top:3px}
+.pitem .pt small.last.ok{color:var(--ok)}.pitem .pt small.last.bad{color:var(--bad)}
+.badge{font-size:10.5px;font-weight:600;padding:1px 7px;border-radius:999px;background:var(--bg4);color:var(--muted)}.badge.do{background:rgba(245,183,72,.18);color:var(--warn)}
+.pact{display:flex;align-items:center;gap:6px;flex:none}.pact .btn{padding:4px 10px;font-size:12px}
+.pitem .icon{width:28px;height:28px}
+.pempty{display:flex;flex-direction:column;gap:4px;align-items:center;text-align:center;color:var(--muted);padding:26px 16px;font-size:12.5px}.pempty b{color:var(--fg);font-weight:600;font-size:13.5px}
+/* continue menu */
+.contwrap{position:relative}.hbtn .chev{width:12px;height:12px;margin-left:-2px;opacity:.7}
+.contmenu{position:absolute;right:0;top:calc(100% + 6px);width:300px;background:var(--bg2);border:1px solid var(--line2);border-radius:12px;padding:5px;box-shadow:0 16px 40px rgba(0,0,0,.55);display:none;z-index:30;-webkit-app-region:no-drag}
+.contmenu.open{display:block;animation:in .16s}
+.cmh{font-size:11.5px;color:var(--dim);padding:5px 10px 6px}
+.cmi{display:flex;gap:11px;align-items:flex-start;width:100%;text-align:left;padding:9px 10px;border-radius:9px;transition:background .12s}.cmi:hover{background:var(--bg4)}.cmi:disabled{opacity:.45;cursor:default}.cmi:disabled:hover{background:none}
+.cmic{width:30px;height:30px;border-radius:8px;background:var(--bg3);display:grid;place-items:center;flex:none;color:var(--brand)}.cmic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cmt{display:flex;flex-direction:column;min-width:0}.cmt b{font-weight:600;font-size:13px}.cmt small{color:var(--muted);font-size:11.5px;line-height:1.4;margin-top:1px}
+/* assistant extras */
+.ptabs button{padding:6px 4px;font-size:12px}
+.ptop{display:flex;align-items:flex-start;gap:10px;margin:0 2px 12px}.ptop>div{flex:1;min-width:0}.ptop b{display:block;font-weight:600}.ptop small{display:block;color:var(--muted);font-size:12px;line-height:1.45;margin-top:2px}
+.tpls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.tpl{display:flex;flex-direction:column;gap:4px;padding:11px 12px;background:var(--bg2);border:1px solid var(--line);border-radius:12px}.tpl b{font-weight:600;font-size:13px}.tpl small{color:var(--muted);font-size:11.5px;line-height:1.4;flex:1}.tpl .btn{align-self:flex-start;margin-top:4px;padding:4px 11px}
+.wstep{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.wsh{display:flex;align-items:center;gap:6px}.wsh .sp{flex:1}.wsh select.in{width:auto;flex:0 1 auto;padding:5px 24px 5px 9px;font-size:12px}.wsh .radio button{padding:4px 9px;font-size:12px}.wsh .icon{width:26px;height:26px;font-size:13px}
+.wn{width:20px;height:20px;border-radius:50%;background:var(--bg4);display:grid;place-items:center;font-size:11px;font-weight:700;color:var(--muted);flex:none}
+.wstep textarea.in{min-height:46px;resize:vertical;font-size:12.5px}
+.jst{width:30px;height:30px;border-radius:9px;flex:none;display:grid;place-items:center;background:var(--bg3)}
+.jst::after{content:"";width:10px;height:10px;border-radius:50%}
+.jst.run::after{border:2px solid var(--brand);border-right-color:transparent;animation:spin 1s linear infinite;width:12px;height:12px;box-sizing:border-box}
+.jst.q::after{background:var(--dim)}.jst.ok::after{background:var(--ok)}.jst.bad::after{background:var(--bad)}.jst.ev::after{background:var(--warn)}
+.job .pt{cursor:pointer}.jout{margin-top:7px;padding:7px 9px;border-radius:8px;background:var(--bg3);font:11.5px/1.5 var(--mono);color:var(--muted);white-space:pre-wrap;word-break:break-word;max-height:58px;overflow:hidden;user-select:text}.jout.open{max-height:340px;overflow:auto;color:var(--fg)}
+.jsteps{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}.jstep{font-size:10.5px;padding:1px 7px;border-radius:999px;background:var(--bg4);color:var(--dim)}.jstep.running{color:var(--brand)}.jstep.done{color:var(--ok)}.jstep.error{color:var(--bad)}
+.jlink{font-size:12px;color:var(--brand);text-decoration:none;display:inline-block;margin-top:4px}
+.picktip{display:flex;align-items:center;gap:8px;margin:0 0 8px;padding:6px 6px 6px 11px;border-radius:10px;background:rgba(var(--brand-rgb),.1);border:1px solid rgba(var(--brand-rgb),.28);font-size:12px;color:var(--muted);animation:in .22s}
+.picktip span{flex:1}.picktip b{color:var(--fg)}.picktip .btn{padding:3px 10px;font-size:12px}.picktip .icon{width:24px;height:24px}
+.msg.ai .label .say{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;color:var(--dim);opacity:0;transition:opacity .15s}.msg.ai:hover .label .say{opacity:1}.msg.ai .label .say:hover{background:var(--bg3);color:var(--fg)}
+.msg.ai .label .say svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.msg.ai .label time{margin-left:0}.msg.ai .label .say{margin-left:auto}
+.msg.flash .card,.msg.flash .bubble{box-shadow:0 0 0 2px rgba(var(--brand-rgb),.6);border-radius:12px;transition:box-shadow .3s}
+#mic.on{color:var(--bad);background:rgba(248,113,113,.12)}#mic.on svg{animation:pulse 1s ease-in-out infinite}
+.csearch{border-bottom:1px solid var(--line);background:var(--bg);display:flex;flex-direction:column;max-height:60%;animation:in .18s}
+.csh{display:flex;gap:6px;align-items:center;padding:10px 14px 8px}.csh .in{flex:1}
+.csr{overflow:auto;padding:0 10px 10px}.csi{padding:8px 10px;border-radius:9px;cursor:pointer;font-size:12.5px;line-height:1.5}.csi:hover{background:var(--bg2)}.csm{display:flex;gap:6px;align-items:center;color:var(--dim);font-size:11.5px;margin-bottom:2px}
+mark{background:rgba(245,183,72,.3);color:var(--fg);border-radius:3px;padding:0 1px}
+.ghrun{display:flex;align-items:center;gap:8px;padding:5px 2px;font-size:12.5px}.ghrun a{color:var(--fg);text-decoration:none;font-weight:500}.ghrun a:hover{text-decoration:underline}.ghrun small{color:var(--dim);margin-left:auto;font-size:11.5px;white-space:nowrap}
+.gst{width:8px;height:8px;border-radius:50%;flex:none}.gst.ok{background:var(--ok)}.gst.bad{background:var(--bad)}.gst.run{background:var(--warn);animation:pulse 1.2s infinite}
+.alog{padding:4px 0;border-bottom:1px solid var(--line);font-size:12px}.alog b{color:var(--fg);font-weight:500}.alog small{color:var(--dim);display:block}.alog .ok{color:var(--ok)}.alog .bad{color:var(--bad)}
+details.pform>summary{list-style:none;cursor:pointer}details.pform>summary::-webkit-details-marker{display:none}
+/* connect */
+.cardc{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:13px 14px;margin-bottom:10px;display:flex;gap:14px;align-items:flex-start}
+.cardc .t{flex:1;min-width:0}
+.cardc b{display:block;font-weight:600;font-size:13.5px}
+.cardc small{color:var(--muted);display:block;font-size:12px;line-height:1.5;margin-top:2px}
+.cardc .st{display:inline-flex;align-items:center;gap:6px;font-size:12px;margin-top:8px;color:var(--fg);background:var(--bg3);border-radius:999px;padding:2px 10px 2px 8px}
+.cardc>div:last-child{flex:none}
+.ctl.col{flex-direction:column;align-items:stretch}
+details.box2{background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius);padding:11px 14px;margin-top:10px}
+.steps-ol{margin:8px 0 0 18px;padding:0;line-height:1.55}.steps-ol li{margin:0 0 5px}
+.cardc a,.section a,.note a{color:var(--brand);text-decoration:none}
+.msgbox{background:var(--bg3);border:1px solid var(--line);border-radius:10px;padding:8px 10px;font-size:12.5px;color:var(--muted);white-space:pre-wrap;margin-top:8px;user-select:text}
+.msgbox.ok{color:var(--ok)}.msgbox.bad{color:var(--bad)}
+.toast{position:fixed;left:50%;top:104px;transform:translateX(-50%) translateY(-8px);z-index:20;background:var(--fg);color:var(--bg);font-weight:500;border-radius:999px;padding:7px 15px;font-size:12.5px;opacity:0;pointer-events:none;transition:all .2s;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.low{top:auto;bottom:22px}
+
+.skins{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.skin{background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:12px 8px 10px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center;transition:border-color .15s,background .15s}
+.skin:hover{background:var(--bg3)}.skin.active{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset}
+.skin .prev{width:60px;height:60px;display:flex;align-items:center;justify-content:center}.skin .prev svg,.skin .prev img{width:60px;height:60px}
+.skin b{font-size:12.5px;font-weight:600}.skin small{font-size:11px;color:var(--muted);line-height:1.35}
+.face.skinned{background:transparent;border-radius:0;box-shadow:none}.face.skinned::before,.face.skinned::after{display:none}.face.skinned svg,.face.skinned img{width:100%;height:100%;display:block}
+.skills-list{max-height:140px;overflow:hidden;position:relative;transition:max-height .25s}.skills-list.open{max-height:2000px}
+.skills-list:not(.open)::after{content:"";position:absolute;left:0;right:0;bottom:0;height:40px;background:linear-gradient(transparent,var(--bg2))}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr drag">
+    <div class="face" id="face"></div>
+    <div class="who"><div class="name" id="name">Buddy</div><div class="status"><span class="dot" id="pdot"></span><span id="status">Starting…</span></div></div>
+    <button class="icon" id="searchbtn" title="Search chats (Ctrl+F)"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg></button>
+    <div class="contwrap"><button class="hbtn" id="cont" title="Continue this conversation somewhere else" style="display:none"><svg viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/></svg>Continue<svg class="chev" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="contmenu" id="contmenu"></div></div>
+    <button class="icon" id="close" title="Hide (Esc)"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+  </div>
+  <nav class="nav">
+    <button data-view="chat" class="active"><svg viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1.1-4.2A8 8 0 1 1 21 12z"/></svg><span>Chat</span></button>
+    <button data-view="tasks" title="Tasks, reminders and schedules"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg><span>Planner</span></button>
+    <button data-view="connect"><svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg><span>Connect</span></button>
+    <button data-view="skins"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="9" cy="11" r="1" fill="currentColor"/><circle cx="15" cy="11" r="1" fill="currentColor"/><path d="M9 15.5c1.8 1.4 4.2 1.4 6 0"/></svg><span>Appearance</span></button>
+    <button data-view="settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg><span>Settings</span></button>
+  </nav>
+
+  <div class="view active" id="view-chat"></div>
+  <div class="view" id="view-tasks"></div>
+  <div class="view" id="view-connect"></div>
+  <div class="view" id="view-skins"></div>
+  <div class="view" id="view-settings"></div>
+
+  <div class="composer" id="composer">
+    <div class="slash" id="slash"></div>
+    <div class="box">
+      <div class="files" id="files"></div>
+      <textarea id="input" rows="1" placeholder="Message Buddy…"></textarea>
+      <div class="tools">
+        <button class="icon" id="attach" title="Attach files"><svg viewBox="0 0 24 24"><path d="M21.4 11.1l-9.2 9.2a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg></button>
+        <button class="icon" id="snip" title="Screenshot an area (Win+Shift+X)"><svg viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 1 2-2h2l2-3h6l2 3h2a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><circle cx="12" cy="13" r="3.5"/></svg></button>
+        <button class="icon" id="mic" title="Voice input"><svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+        <div class="pbar" id="pbar"><button class="pick" id="pick" title="Choose which AI answers"><span class="dot"></span><span id="pickname">AI</span><svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg></button><div class="seg" id="seg"></div></div>
+        <span class="sp"></span>
+        <button class="mode" id="mode" title="Ask: answers only, never changes files · Do: may edit files and run commands in your working folder"><span>Ask</span><span>Do</span></button>
+        <button class="send" id="send" title="Send (Enter)"><svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg></button>
+      </div>
+    </div>
+    <div class="hint"><span id="foot"></span><span class="sp"></span><span><kbd>/</kbd> commands</span></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+(() => {
+const $ = s => document.querySelector(s);
+const api = () => window.pywebview && window.pywebview.api;
+const call = (m, ...a) => { const p = api(); return p && p[m] ? Promise.resolve(p[m](...a)) : Promise.resolve(null); };
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const S = { snap:null, current:null, steps:null, text:'', busy:false, view:'chat', provider:null, slashSel:0 };
+
+/* ---------- markdown-lite ---------- */
+function inline(t){
+  t = esc(t);
+  t = t.replace(/`([^`\n]+)`/g, '<code>$1</code>');
+  t = t.replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<i>$2</i>');
+  t = t.replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank">$1</a>');
+  t = t.replace(/(^|[\s(])((https?:\/\/)[^\s<)]+)/g, '$1<a href="$2" target="_blank">$2</a>');
+  return t;
+}
+function md(src){
+  const out = []; const lines = String(src).replace(/\r/g,'').split('\n'); let i = 0;
+  while (i < lines.length){
+    const l = lines[i];
+    const fence = l.match(/^```(\w*)/);
+    if (fence){ const buf=[]; i++; while(i<lines.length && !/^```/.test(lines[i])) buf.push(lines[i++]); i++;
+      out.push(`<pre><button class="copy">Copy</button><code data-lang="${esc(fence[1])}">${esc(buf.join('\n'))}</code></pre>`); continue; }
+    if (/^#{1,3}\s/.test(l)){ out.push(`<h3>${inline(l.replace(/^#+\s/,''))}</h3>`); i++; continue; }
+    if (/^\s*[-*]\s/.test(l)){ const items=[]; while(i<lines.length && /^\s*[-*]\s/.test(lines[i])) items.push(`<li>${inline(lines[i++].replace(/^\s*[-*]\s/,''))}</li>`); out.push(`<ul>${items.join('')}</ul>`); continue; }
+    if (/^\s*\d+[.)]\s/.test(l)){ const items=[]; while(i<lines.length && /^\s*\d+[.)]\s/.test(lines[i])) items.push(`<li>${inline(lines[i++].replace(/^\s*\d+[.)]\s/,''))}</li>`); out.push(`<ol>${items.join('')}</ol>`); continue; }
+    if (!l.trim()){ i++; continue; }
+    const para=[]; while(i<lines.length && lines[i].trim() && !/^```|^#{1,3}\s|^\s*[-*]\s|^\s*\d+[.)]\s/.test(lines[i])) para.push(inline(lines[i++]));
+    out.push(`<p>${para.join('<br>')}</p>`);
+  }
+  return out.join('');
+}
+
+/* ---------- chat rendering ---------- */
+const chat = $('#view-chat');
+function scrollDown(){ chat.scrollTop = chat.scrollHeight; }
+function timeStr(ts){ const d = ts ? new Date(ts*1000) : new Date(); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function empty(){
+  const n = S.snap ? S.snap.settings.assistant_name : 'Buddy';
+  const boss = S.snap ? S.snap.settings.boss_name : '';
+  const ideas = [['Ask a question','Explain, plan or brainstorm anything','',''],['Work on my project','Fix a bug or build a feature (Do mode)','Fix ','do'],['Summarize files','Drop files here first, then ask','Summarize the attached files',''],['Set a reminder','"/remind 25m take a break"','/remind 25m ','']];
+  chat.innerHTML = `<div class="empty"><div class="face"></div><h3>${boss ? `Hi ${esc(boss)}, what` : 'What'} should we do?</h3><div>I'm ${esc(n)}. Pick a starting point or just type below.</div>
+  <div class="ideas">${ideas.map(([t,d,q,m]) => `<button class="idea" data-q="${esc(q)}" data-m="${m}"><b>${esc(t)}</b><small>${esc(d)}</small></button>`).join('')}</div></div>`;
+  chat.querySelectorAll('.idea').forEach(c => c.onclick = () => { if (c.dataset.m === 'do' && !$('#mode').classList.contains('on')) $('#mode').click(); input.value = c.dataset.q; input.focus(); autosize(); });
+}
+function addUser(text, ts, images){ chat.querySelector('.empty')?.remove(); const m = document.createElement('div'); m.className='msg user'; const im = (images||[]).slice(0,4); for (const p of (images||[])) SENT.add(p); m.innerHTML = `<div class="bubble${im.length ? ' hasimg' : ''}">${im.length ? `<div class="uimgs n${im.length}">${im.map(p => `<img src="${fileUrl(p)}" data-p="${esc(p)}" alt="">`).join('')}</div>` : ''}${text ? `<div>${esc(text)}</div>` : ''}</div>`; m.querySelectorAll('.uimgs img').forEach(i => i.onclick = () => openPath(i.dataset.p)); chat.appendChild(m); scrollDown(); }
+/* browser sign-in card (no terminal): status + open again + code box (Claude) + cancel */
+function loginCard(p){
+  let m = document.getElementById('logincard');
+  if (!p || !p.which || p.state === 'idle') { if (m) m.remove(); return; }
+  const nm = { claude: 'Claude', codex: 'Codex', gemini: 'Gemini' }[p.which] || p.which;
+  if (!m) { chat.querySelector('.empty')?.remove(); m = document.createElement('div'); m.id = 'logincard'; m.className = 'msg sys'; chat.appendChild(m); }
+  if (p.state === 'done') { m.innerHTML = `<div class="pill"><div class="face"></div><div>✓ ${esc(nm)} signed in${p.message ? ' ' + esc(p.message) : ''}. Send your message again.</div></div>`; applySkin(); m.id = ''; scrollDown(); return; }
+  if (p.state === 'error') { m.innerHTML = `<div class="pill"><div class="face"></div><div>${esc(nm)} sign-in didn't finish. <button class="chip" data-a="retry">Try again</button></div></div>`; m.querySelector('[data-a=retry]').onclick = () => call('open_login', p.which); applySkin(); m.id = ''; scrollDown(); return; }
+  const had = m.querySelector('#lcode'); const typed = had ? had.value : '';
+  m.innerHTML = `<div class="pill" style="align-items:flex-start"><div class="face"></div><div style="flex:1">
+    <b>Sign in to ${esc(nm)}</b><div class="note" style="margin:2px 0 6px">${p.state === 'starting' ? 'Opening your browser…' : 'Your browser is open — sign in there. Buddy finishes the rest automatically.'}${p.message ? ' ' + esc(p.message) : ''}</div>
+    ${p.needsCode ? `<div style="display:flex;gap:6px;margin-bottom:6px"><input class="in" id="lcode" placeholder="Browser shows a code? Paste it here" style="flex:1"><button class="btn primary" id="lsend">Submit</button></div>` : ''}
+    <div style="display:flex;gap:6px">${p.url ? '<button class="chip" id="lopen">Open sign-in page again</button>' : ''}<button class="chip" id="lcancel">Cancel</button></div></div></div>`;
+  applySkin();
+  const code = m.querySelector('#lcode'); if (code) { code.value = typed; const send = () => { if (code.value.trim()) { call('login_code', code.value.trim()); code.value = ''; toast('Code sent — checking…'); } }; m.querySelector('#lsend').onclick = send; code.onkeydown = e => { if (e.key === 'Enter') send(); }; }
+  m.querySelector('#lopen') && (m.querySelector('#lopen').onclick = () => call('login_open'));
+  m.querySelector('#lcancel').onclick = () => call('login_cancel');
+  scrollDown();
+}
+function addSystem(text, error){
+  if (!error && /conversation cleared\.$/.test(text) && chat.querySelector('.empty')) { toast(text); return; }
+  chat.querySelector('.empty')?.remove(); const m = document.createElement('div'); m.className='msg sys'+(error?' error':'');
+  const login = !/opening your browser/i.test(text) && /\/login|not logged in|not signed in|sign[ -]in|login/i.test(text) ? (/codex/i.test(text) ? 'codex' : /gemini/i.test(text) ? 'gemini' : 'claude') : null;
+  const inst = /not found|not installed|install it/i.test(text) ? (/codex/i.test(text) ? 'codex' : /gemini/i.test(text) ? 'gemini' : 'claude') : null;
+  const nm = { codex: 'Codex', gemini: 'Gemini (Antigravity CLI)', claude: 'Claude Code' };
+  m.innerHTML = `<div class="pill"><div>${esc(text)}${inst ? ` <button class="chip" data-inst="${inst}" style="margin-left:6px">Install ${nm[inst]} (auto)…</button>` : login ? ` <button class="chip" data-login="${login}" style="margin-left:6px">Sign in to ${login==='codex'?'Codex':login==='gemini'?'Gemini':'Claude'}…</button>` : ''}</div></div>`;
+  m.querySelector('[data-login]') && (m.querySelector('[data-login]').onclick = () => call('open_login', login));
+  m.querySelector('[data-inst]') && (m.querySelector('[data-inst]').onclick = () => { call('install_cli', inst); toast('Installing… Buddy opens the browser to sign in when done.'); });
+  applySkin();
+  chat.appendChild(m); scrollDown();
+}
+function addPermission(p){
+  chat.querySelector('.empty')?.remove(); const m = document.createElement('div'); m.className='msg sys perm'; m.dataset.perm = p.id;
+  if (p.reshow && chat.querySelector(`[data-perm="${p.id}"]`)) { const old = chat.querySelector(`[data-perm="${p.id}"]`); old.scrollIntoView({ block: 'center' }); old.style.outline = '2px solid var(--accent)'; setTimeout(() => old.style.outline = '', 1500); return; }
+  m.innerHTML = `<div class="pill"><div class="ph"><span class="tag">Approval needed</span><span class="svc">${esc(p.nice||p.tool)}</span></div><b>${esc(p.title || ('Allow ' + (p.nice||p.tool) + '?'))}</b>${p.detail ? `<div class="pd">${esc(p.detail)}</div>` : ''}${p.reason ? `<div class="pr">${esc(p.reason)}</div>` : ''}<div class="pa"><button class="btn primary" data-a="accept">Accept once</button><button class="btn" data-a="deny">Reject</button></div></div>`;
+  m.querySelectorAll('button').forEach(b => b.onclick = () => { call('permission_reply', p.id, b.dataset.a); settlePermission(p.id, b.dataset.a); });
+  chat.appendChild(m); scrollDown();
+}
+function settlePermission(id, answer){
+  const m = chat.querySelector(`[data-perm="${id}"]`); if(!m) return;
+  m.classList.add('settled', answer==='deny'?'denied':'accepted'); const box = m.querySelector('[data-a]')?.parentElement; if(box) box.remove(); const t = m.querySelector('.tag'); if(t) t.textContent = answer==='deny' ? 'Rejected' : 'Accepted once';
+}
+function beginAI(label, name, accent){
+  chat.querySelector('.empty')?.remove();
+  const m = document.createElement('div'); m.className='msg ai'; if(accent) m.style.setProperty('--p', accent);
+  m.innerHTML = `<div class="card"><div class="label"><span class="dot"></span><b>${esc(label)}</b><time>${timeStr()}</time></div><div class="steps" style="display:none"></div><div class="body"><span class="cursor"></span></div></div>`;
+  chat.appendChild(m); S.current = m; S.steps = m.querySelector('.steps'); S.text=''; scrollDown(); return m;
+}
+function addAI(label, text, ts, accent){ const m = beginAI(label, '', accent); m.querySelector('time').textContent = timeStr(ts); finishAI(text); }
+function streamText(chunk){ if(!S.current) beginAI(S.provider?S.provider.label:'AI','',S.provider&&S.provider.accent); S.text += chunk; const b = S.current.querySelector('.body'); b.innerHTML = md(S.text) + '<span class="cursor"></span>'; scrollDown(); }
+function finishAI(text){ if(!S.current) return; addSpeakButton(S.current); if(text!==undefined) S.text = text; const b = S.current.querySelector('.body'); const hasImg = localImages(S.text).length; b.innerHTML = md(hasImg ? stripImgs(S.text) : S.text) || (hasImg ? '' : '<p class="note">(no text)</p>'); renderImages(b, S.text); S.steps?.querySelectorAll('.step.running').forEach(s=>s.className='step done'); wireCopy(b); S.current=null; S.steps=null; scrollDown(); }
+function addStep(tool, detail, status){
+  if(!S.current) return;
+  if(!tool){ const last = S.steps.querySelector('.step.running'); if(last) last.className = 'step '+status; return; }
+  S.steps.style.display='flex';
+  S.steps.querySelectorAll('.step.running').forEach(s=>s.className='step done');
+  const icons = { running:'<svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.2-8.6"/></svg>', done:'<svg viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></svg>', error:'<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>' };
+  const s = document.createElement('div'); s.className='step '+status; s.innerHTML = `<span class="ico">${icons[status]||icons.done}</span><b>${esc(tool)}</b><code title="${esc(detail)}">${esc(detail)}</code>`;
+  s.dataset.icons = JSON.stringify(icons); S.steps.appendChild(s);
+  const obs = new MutationObserver(()=>{ const st = s.className.replace('step ','').trim(); s.querySelector('.ico').innerHTML = icons[st]||icons.done; }); obs.observe(s,{attributes:true,attributeFilter:['class']});
+  scrollDown();
+}
+const IMG_RE = /(?:[A-Za-z]:[\\/]|\/)(?:[^\s"'<>()\[\]]|\\ )+?\.(?:png|jpe?g|gif|webp|bmp)/gi;
+const SENT = new Set();
+function localImages(text){ const seen = new Set(SENT); return (String(text).match(IMG_RE) || []).map(p => p.replace(/\\\\/g, '\\')).filter(p => !seen.has(p) && seen.add(p)); }
+function fileUrl(p){ return 'file:///' + encodeURI(p.replace(/\\/g, '/').replace(/^\//, '')).replace(/#/g, '%23'); }
+// hide the file paths of pictures we show as real images (outside code blocks)
+function stripImgs(t){ const E = '(?:png|jpe?g|gif|webp|bmp)'; return String(t).split(/(```[\s\S]*?```)/).map((part, i) => i % 2 ? part : part
+  .replace(new RegExp('!?\\[[^\\]]*\\]\\(\\s*<?((?:[A-Za-z]:[\\\\/]|/)[^)\\s>]+\\.' + E + ')>?\\s*\\)', 'gi'), '')
+  .replace(new RegExp('`((?:[A-Za-z]:[\\\\/]|/)[^`]+\\.' + E + ')`', 'gi'), '').replace(IMG_RE, '')
+  .replace(/[ \t]+$/gm, '').replace(/\n{3,}/g, '\n\n')).join('').trim(); }
+function renderImages(root, text){
+  const imgs = localImages(text); if(!imgs.length) return;
+  const wrap = document.createElement('div'); wrap.className = 'imgs';
+  wrap.classList.add('n' + Math.min(imgs.length, 4));
+  wrap.innerHTML = imgs.slice(0, 6).map(p => `<figure class="img" data-p="${esc(p)}" title="${esc(p.split(/[\\/]/).pop())}"><img src="${fileUrl(p)}" alt="" onerror="this.closest('.img').remove()"><button class="dl" data-save title="Save image"><svg viewBox="0 0 24 24"><path d="M12 4v11m0 0l-4.5-4.5M12 15l4.5-4.5M5 19h14"/></svg></button></figure>`).join('');
+  wrap.querySelectorAll('img').forEach(i => i.onclick = () => call('open_path', i.closest('.img').dataset.p, true));
+  wrap.querySelectorAll('[data-open]').forEach(b => b.onclick = () => call('open_path', b.closest('.img').dataset.p, true));
+  wrap.querySelectorAll('[data-save]').forEach(b => b.onclick = async () => { const r = await call('save_file', b.closest('.img').dataset.p); if (r) toast('Saved to ' + r.split(/[\\/]/).pop()); });
+  root.insertBefore(wrap, root.firstChild); // picture first, text under it (like WhatsApp)
+}
+function wireCopy(root){ root.querySelectorAll('pre .copy').forEach(b => b.onclick = () => { navigator.clipboard.writeText(b.nextElementSibling.textContent).then(()=>{ b.textContent='Copied'; setTimeout(()=>b.textContent='Copy',1200); }); }); }
+function renderHistory(list){
+  chat.innerHTML=''; if(!list.length){ empty(); return; }
+  for(const m of list){ if(m.role==='user') addUser(m.text, m.at, m.images); else if(m.role==='assistant'){ const p = providerByName(m.provider); addAI(p?p.label:(m.provider||'AI'), m.text, m.at, p&&p.accent); } }
+  const d = document.createElement('div'); d.className='divider'; d.textContent='— earlier —'; chat.insertBefore(d, chat.firstChild); scrollDown();
+}
+function providerByName(n){ return S.snap && S.snap.provider.all.find(p=>p.name===n); }
+
+/* ---------- face ---------- */
+const face = $('#face');
+setInterval(()=>{ face.classList.add('blink'); setTimeout(()=>face.classList.remove('blink'),140); }, 3200+Math.random()*1500);
+function talking(on){ face.classList.toggle('talk', !!on); }
+
+/* ---------- provider bar ---------- */
+function setAccent(hex){ document.documentElement.style.setProperty('--accent', hex); const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16); document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`); }
+function renderProvider(p){
+  S.provider = p; setAccent(p.accent);
+  const seg = $('#seg'); seg.innerHTML = `<div class="segh">Answer with</div>` + p.all.map(x => `<button data-p="${x.name}" style="--p:${x.accent}" class="${x.name===p.name?'active':''}"><span class="dot"></span><span class="l">${esc(x.label)}</span><span class="ck">${x.name===p.name?'✓':''}</span></button>`).join('');
+  seg.querySelectorAll('button').forEach(b => b.onclick = () => { seg.classList.remove('open'); call('set_provider', b.dataset.p); });
+  $('#pick').style.setProperty('--p', p.accent); $('#pickname').textContent = p.label;
+  const dot = $('#pdot'); dot.className = 'dot ' + (p.checking ? 'pulse' : p.ok===false ? 'bad' : p.ok ? 'on' : '');
+  let st = p.checking ? `Checking ${p.label}…` : p.ok===false ? `${p.label} · ${p.detail||'unavailable'}` : `${p.label}${p.detail?' · '+p.detail:''}`;
+  if (S.busy) st = `${p.label} · thinking`;
+  $('#cont').style.display = p.name ? '' : 'none'; $('#cont').onclick = e => { e.stopPropagation(); openContinue(); };
+  $('#status').textContent = st; renderFoot();
+}
+
+/* ---------- composer ---------- */
+const input = $('#input'), send = $('#send');
+function autosize(){ input.style.height='auto'; input.style.height = Math.min(160, input.scrollHeight) + 'px'; }
+input.addEventListener('input', () => { autosize(); slashMenu(); });
+input.addEventListener('keydown', e => {
+  const sl = $('#slash');
+  if (sl.classList.contains('show')){
+    const items = [...sl.children];
+    if (e.key==='ArrowDown'){ e.preventDefault(); S.slashSel=(S.slashSel+1)%items.length; paintSlash(); return; }
+    if (e.key==='ArrowUp'){ e.preventDefault(); S.slashSel=(S.slashSel-1+items.length)%items.length; paintSlash(); return; }
+    if (e.key==='Tab' || (e.key==='Enter' && !e.shiftKey)){ e.preventDefault(); items[S.slashSel].click(); return; }
+    if (e.key==='Escape'){ e.preventDefault(); e.stopPropagation(); sl.classList.remove('show'); return; }
+  }
+  if (e.key==='Enter' && !e.shiftKey){ e.preventDefault(); submit(); }
+});
+function submit(){
+  if (S.busy){ call('stop'); return; }
+  const t = input.value.trim(); if(!t && !(S.files||[]).some(f => /\.(png|jpe?g|gif|webp|bmp)$/i.test(f))) return;
+  input.value=''; autosize(); $('#slash').classList.remove('show'); call('send', t);
+}
+send.onclick = submit;
+function renderMode(on){ const m = $('#mode'); m.classList.toggle('on', !!on); input.placeholder = on ? 'Tell Buddy what to do…' : `Message ${S.snap?S.snap.settings.assistant_name:'Buddy'}…`; renderFoot(); }
+function renderFoot(){ const on = $('#mode').classList.contains('on'); const wd = (S.snap && S.snap.settings && S.snap.settings.workdir) || ''; const folder = wd ? wd.split(/[\\/]/).filter(Boolean).pop() : 'your working folder';
+  $('#foot').innerHTML = on ? `<span class="mtag do">Do</span> Can edit files and run commands in <b>${esc(folder)}</b>` : `<span class="mtag">Ask</span> Answers only — your files stay untouched`; }
+$('#pick').onclick = e => { e.stopPropagation(); $('#seg').classList.toggle('open'); };
+document.addEventListener('click', e => { if (!e.target.closest('#pbar')) $('#seg').classList.remove('open'); });
+$('#mode').onclick = () => { const on = !$('#mode').classList.contains('on'); renderMode(on); call('set_agent_mode', on); };
+function setBusy(b){ S.busy=b; send.classList.toggle('stop', b); send.title = b?'Stop':'Send (Enter)'; send.innerHTML = b ? '<svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 19V5M5 12l7-7 7 7"/></svg>'; talking(b); if(S.provider) renderProvider(S.provider); }
+const COMMANDS = [['/task ','add a task'],['/remind 10m ','set a reminder (or Planner → Reminders)'],['/files','list attached files'],['/gemini','switch to Gemini'],['/codex','switch to Codex'],['/claude','switch to Claude'],['/clear','forget the conversation'],['/help','all commands']];
+function allCommands(){ const sk = (S.snap && S.snap.skills) || []; return [...sk.map(k => ['/'+k.name+' ', (k.description || 'skill') + ' · ' + k.source]), ...COMMANDS, ['/skills','list skills'], ['/remember ','save a fact to memory'], ['/memory','show memory']]; }
+function slashMenu(){
+  const v = input.value; const sl = $('#slash'); const CMDS = allCommands();
+  if (!v.startsWith('/') || v.includes('\n') || v.includes(' ') && !CMDS.some(c=>v.startsWith(c[0]) && c[0].endsWith(' ') && v===c[0])){ sl.classList.remove('show'); return; }
+  const hits = CMDS.filter(c => c[0].startsWith(v) && c[0]!==v).slice(0, 10);
+  if(!hits.length){ sl.classList.remove('show'); return; }
+  S.slashSel = Math.min(S.slashSel, hits.length-1);
+  sl.innerHTML = hits.map(c => `<div data-c="${esc(c[0])}"><code>${esc(c[0])}</code><span>${esc(c[1])}</span></div>`).join('');
+  sl.querySelectorAll('div').forEach(d => d.onclick = () => { input.value = d.dataset.c; sl.classList.remove('show'); input.focus(); autosize(); if(!d.dataset.c.endsWith(' ')) submit(); });
+  sl.classList.add('show'); paintSlash();
+}
+function paintSlash(){ [...$('#slash').children].forEach((d,i)=>d.classList.toggle('sel', i===S.slashSel)); }
+$('#attach').onclick = () => call('attach');
+$('#snip').onclick = () => call('snip');
+function renderFiles(files){
+  S.files = files; input.placeholder = files.some(f => /\.(png|jpe?g|gif|webp|bmp)$/i.test(f)) ? 'Add a caption…' : `Message ${(S.snap && S.snap.settings.assistant_name) || 'Buddy'}…`;
+  const f = $('#files'); f.innerHTML = files.map(p => { const name = p.split(/[\\/]/).pop(); const pic = /\.(png|jpe?g|gif|webp|bmp)$/i.test(name); return `<div class="file${pic ? ' pic' : ''}" title="${esc(p)}">${pic ? `<img src="${fileUrl(p)}" alt="">` : ''}<span data-p="${esc(p)}">${esc(name)}</span><button data-r="${esc(p)}" title="Remove">×</button></div>`; }).join('');
+  f.querySelectorAll('span').forEach(s => s.onclick = () => openPath(s.dataset.p));
+  f.querySelectorAll('button').forEach(b => b.onclick = () => call('remove_file', b.dataset.r));
+}
+async function openPath(p){ const ok = await call('open_path', p, false); if (ok===false && confirm('This file can run code on your computer. Open it?')) call('open_path', p, true); }
+
+/* ---------- views ---------- */
+function show(view){
+  S.view = view; document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id==='view-'+view));
+  document.querySelectorAll('.nav button[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view===view));
+  $('#composer').style.display = view==='chat' ? '' : 'none'; $('#pbar').style.display = view==='chat' ? '' : 'none';
+  if (view==='tasks') renderPlanner(); if (view==='connect') renderConnect(); if (view==='settings') renderSettings(); if (view==='skins') renderSkins(); if (view==='chat'){ input.focus(); scrollDown(); }
+}
+document.querySelectorAll('.nav button[data-view]').forEach(b => b.onclick = () => show(b.dataset.view));
+$('#close').onclick = () => call('hide'); $('#searchbtn').onclick = () => openSearch(); $('#mic').onclick = () => micClick();
+document.addEventListener('keydown', e => { if (e.key==='Escape' && $('#csearch')) { $('#csearch').remove(); return; } if (e.key==='Escape' && !e.defaultPrevented && !$('#slash').classList.contains('show')){ if(S.view!=='chat') show('chat'); else call('hide'); } if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='k'){ e.preventDefault(); show('chat'); input.focus(); } if ((e.ctrlKey||e.metaKey) && e.key.toLowerCase()==='f'){ e.preventDefault(); openSearch(); } });
+
+/* settings: assistant, voice, watchers, calendar, knowledge, action log (save instantly) */
+function wireAssistantSettings(v, s){
+  const saveKey = async (k, val) => { const p = await call('save_settings', { [k]: val }) || []; if (p.length) toast(p[0]); else { S.snap.settings[k] = val; toast('Saved'); } };
+  v.querySelectorAll('input.sw[data-k]').forEach(c => c.onchange = () => saveKey(c.dataset.k, c.checked));
+  v.querySelectorAll('#v_dict button').forEach(b => b.onclick = () => { v.querySelectorAll('#v_dict button').forEach(x => x.classList.toggle('active', x===b)); saveKey('dictation', b.dataset.m); });
+  const fillVoices = () => { const sel = $('#v_voice'); if (!sel || !window.speechSynthesis) return; const vs = speechSynthesis.getVoices(); if (!vs.length) return; sel.innerHTML = '<option value="">System default</option>' + vs.map(x => `<option value="${esc(x.name)}" ${x.name===s.voice_name?'selected':''}>${esc(x.name)} (${esc(x.lang)})</option>`).join(''); };
+  fillVoices(); if (window.speechSynthesis) speechSynthesis.onvoiceschanged = fillVoices;
+  $('#v_voice').onchange = () => { saveKey('voice_name', $('#v_voice').value); speak('Hi, this is how I sound.', $('#v_voice').value); };
+  $('#w_gc').value = s.gchat_notify || 'direct'; $('#w_gc').onchange = () => saveKey('gchat_notify', $('#w_gc').value);
+  $('#w_lead').onchange = () => saveKey('meeting_lead_min', parseInt($('#w_lead').value, 10));
+  $('#s_hk').onchange = () => saveKey('quick_hotkey_accel', $('#s_hk').value.trim().replace(/\s*\+\s*/g, '+').replace(/^ctrl\+/i, 'CommandOrControl+').replace(/\b(alt|shift|space)\b/gi, m => m[0].toUpperCase() + m.slice(1).toLowerCase()));
+  // GitHub
+  const ghRender = st => { if (!st) return; $('#w_repos').value = (st.repos||[]).join(', '); $('#w_ghsum').textContent = st.repos && st.repos.length ? `· watching ${st.repos.length} repo${st.repos.length>1?'s':''}${st.has_token?' · token saved':''}` : '· builds and releases';
+    $('#w_gherr').textContent = st.error || ''; $('#w_runs').innerHTML = (st.runs||[]).slice(0,6).map(r => `<div class="ghrun"><span class="gst ${/success/.test(r.status)?'ok':/failure|cancel|timed/.test(r.status)?'bad':'run'}"></span><a href="#" data-url="${esc(r.url)}">${esc(r.name)}</a><small>${esc(r.repo.split('/')[1])} · ${esc(r.branch||'')} · ${esc(r.status)}</small></div>`).join('');
+    $('#w_runs').querySelectorAll('a[data-url]').forEach(a => a.onclick = e => { e.preventDefault(); call('open_url', a.dataset.url); }); };
+  call('github_status').then(ghRender);
+  $('#w_ghsave').onclick = async () => { const tok = $('#w_tok').value.trim(); const st = await call('github_set', { repos: $('#w_repos').value, ...(tok ? { token: tok } : {}) }); $('#w_tok').value = ''; ghRender(st); toast('GitHub watcher saved'); };
+  $('#w_ghpoll').onclick = async () => { $('#w_ghpoll').textContent = '…'; ghRender(await call('github_poll')); $('#w_ghpoll').textContent = 'Check now'; };
+  // folders
+  const wfOpts = () => ((S.snap && S.snap.workflows) || []).map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join('') || '<option value="">No workflows yet (Planner → Workflows)</option>';
+  const wRender = list => { $('#w_list').innerHTML = (list||[]).map(w => `<div class="pitem" style="margin:0 0 6px;padding:8px 10px"><span class="pico clock">${FOLDER}</span><div class="pt"><b>${esc(w.path.split(/[\\\\/]/).filter(Boolean).pop()||w.path)}</b><small>${esc(w.pattern)} → ${w.action==='ai'?'Ask the AI':w.action==='workflow'?'Workflow':'Tell me'}</small></div><button class="icon" data-wdel="${w.id}" title="Remove">${XICO}</button></div>`).join('');
+    $('#w_list').querySelectorAll('[data-wdel]').forEach(b => b.onclick = async () => { await call('watcher_remove', b.dataset.wdel); wRender(await call('watchers_list')); }); };
+  call('watchers_list').then(wRender); $('#w_wf').innerHTML = wfOpts();
+  $('#w_act').onchange = () => { $('#w_aiwrap').style.display = $('#w_act').value==='ai' ? '' : 'none'; $('#w_wfwrap').style.display = $('#w_act').value==='workflow' ? '' : 'none'; };
+  $('#w_browse').onclick = async () => { const p = await call('browse_folder'); if (p) $('#w_path').value = p; };
+  $('#w_add').onclick = async () => { try { await call('watcher_save', { path: $('#w_path').value, pattern: $('#w_pat').value, action: $('#w_act').value, prompt: $('#w_prompt').value, workflow: $('#w_wf').value }); $('#w_err').textContent = ''; $('#w_path').value = ''; wRender(await call('watchers_list')); toast('Watching'); } catch (e) { $('#w_err').textContent = errMsg(e); } };
+  // calendar
+  $('#w_cal').addEventListener('toggle', async () => { if (!$('#w_cal').open) return; const r = await call('calendar_events', 24) || {}; $('#w_events').innerHTML = r.error ? esc(r.error) : (r.events||[]).length ? '<b style="color:var(--fg)">Next 24 hours</b><br>' + r.events.map(e => `${esc(new Date(e.start).toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}))} — ${esc(e.title)}`).join('<br>') : 'No meetings in the next 24 hours.'; });
+  // knowledge
+  const kRender = st => { if (!st) return; $('#k_sum').textContent = st.folders && st.folders.length ? `· ${st.folders.length} folder${st.folders.length>1?'s':''}, ${st.files} files indexed` : '· docs the AIs can search';
+    $('#k_list').innerHTML = (st.folders||[]).map(f => `<div class="pitem" style="margin:0 0 6px;padding:8px 10px"><span class="pico clock">${FOLDER}</span><div class="pt"><b>${esc(f.split(/[\\\\/]/).filter(Boolean).pop()||f)}</b><small>${esc(f)}</small></div><button class="icon" data-kdel="${esc(f)}" title="Remove">${XICO}</button></div>`).join('');
+    $('#k_list').querySelectorAll('[data-kdel]').forEach(b => b.onclick = async () => kRender(await call('knowledge_set', (st.folders||[]).filter(x => x !== b.dataset.kdel)))); S.kst = st; };
+  call('knowledge_status').then(kRender);
+  $('#k_add').onclick = async () => { const p = await call('browse_folder'); if (p) { toast('Indexing…'); kRender(await call('knowledge_set', [...((S.kst||{}).folders||[]), p])); } };
+  $('#k_re').onclick = async () => kRender(await call('knowledge_reindex'));
+  let kq; $('#k_q').oninput = () => { clearTimeout(kq); kq = setTimeout(async () => { const r = await call('knowledge_search', $('#k_q').value) || []; $('#k_res').innerHTML = r.slice(0,4).map(h => `<div class="msgbox" style="margin-top:6px"><b style="color:var(--fg)">${esc(h.file.split(/[\\\\/]/).pop())}</b> <span style="color:var(--dim)">lines ${h.line}-${h.end}</span>\n${esc(h.text.slice(0,240))}</div>`).join('') || ($('#k_q').value.trim() ? '<div class="note" style="margin-top:6px">No matches.</div>' : ''); }, 250); };
+  // action log
+  $('#a_box').addEventListener('toggle', async () => { if (!$('#a_box').open) return; const a = await call('actions_list') || []; $('#a_list').innerHTML = a.length ? a.map(x => `<div class="alog"><span class="${x.approved?'ok':'bad'}">${x.approved?'✓':'✕'}</span><b>${esc(x.tool)}</b> ${esc(x.target)} <small>${esc(new Date(x.at*1000).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}))} · ${esc(x.result)}</small></div>`).join('') : 'Nothing yet.'; });
+}
+const FOLDER = '<svg viewBox="0 0 24 24"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>';
+function speak(text, voiceName){
+  if (!window.speechSynthesis) return; speechSynthesis.cancel();
+  const t = String(text||'').replace(/```[\s\S]*?```/g, ' code block ').replace(/!\[[^\]]*\]\([^)]*\)/g,'').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').replace(/[#*_`>|~]/g,'').replace(/\s+/g,' ').trim().slice(0, 1200); if (!t) return;
+  const u = new SpeechSynthesisUtterance(t); const name = voiceName != null ? voiceName : (S.snap && S.snap.settings.voice_name); const v = name && speechSynthesis.getVoices().find(x => x.name === name); if (v) u.voice = v; u.rate = 1.03; speechSynthesis.speak(u);
+}
+
+/* continue elsewhere: terminal (same session) or the AI's app / website */
+const CONT_ICON = { terminal: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M13 15h4"/></svg>', app: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg>', web: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.5 3 14.5 0 18M12 3c-3 3.5-3 14.5 0 18"/></svg>' };
+async function openContinue(){
+  const m = $('#contmenu'); if (m.classList.contains('open')) { m.classList.remove('open'); return; }
+  m.innerHTML = '<div class="cmh">Continue with ' + esc(S.provider ? S.provider.label : 'this AI') + '</div><div class="note" style="padding:6px 10px">Checking…</div>'; m.classList.add('open');
+  const opts = await call('continue_options') || [];
+  m.innerHTML = '<div class="cmh">Continue with ' + esc(S.provider ? S.provider.label : 'this AI') + '</div>' + opts.map(o => `<button class="cmi" data-id="${o.id}" ${o.available ? '' : 'disabled'}><span class="cmic">${CONT_ICON[o.id] || ''}</span><span class="cmt"><b>${esc(o.title)}</b><small>${esc(o.sub)}</small></span></button>`).join('');
+  m.querySelectorAll('.cmi').forEach(b => b.onclick = async () => { m.classList.remove('open'); try { const r = await call('continue_with', b.dataset.id); if (r && r.message) toast(r.message); } catch (e) { toast(errMsg(e)); } });
+}
+document.addEventListener('click', e => { if (!e.target.closest('.contwrap')) { const m = $('#contmenu'); if (m) m.classList.remove('open'); } });
+
+/* chat extras: voice input, read aloud, AI suggestion, search */
+const MIC = '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>';
+async function micClick(){
+  const btn = $('#mic'); if (S.listening) { call('voice_stop'); return; }
+  input.focus(); const r = await call('voice_dictate') || {};
+  if (r.error) toast(r.error); else if (r.text) { input.value = (input.value ? input.value.replace(/\s*$/, ' ') : '') + r.text; autosize(); input.focus(); } else if (r.started) toast('Speak now — Windows voice typing is listening');
+}
+function showPickTip(p){
+  if (!p || !p.name || S.provider && S.provider.name === p.name) return; let el = $('#picktip'); if (!el) { el = document.createElement('div'); el.id = 'picktip'; el.className = 'picktip'; $('#composer').prepend(el); }
+  el.innerHTML = `<span>💡 ${esc(p.why)} — next time try <b>${esc(p.label)}</b>.</span><button class="btn" data-sw="${esc(p.name)}">Switch</button><button class="icon" title="Dismiss">${XICO}</button>`;
+  el.querySelector('[data-sw]').onclick = () => { call('set_provider', p.name); el.remove(); }; el.querySelector('.icon').onclick = () => el.remove();
+  setTimeout(() => el.isConnected && el.remove(), 20000);
+}
+function addSpeakButton(m){
+  const lab = m.querySelector('.label'); if (!lab || lab.querySelector('.say')) return; const b = document.createElement('button'); b.className = 'say'; b.title = 'Read aloud';
+  b.innerHTML = '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/></svg>';
+  b.onclick = () => { if (window.speechSynthesis && speechSynthesis.speaking) { speechSynthesis.cancel(); return; } speak(m.querySelector('.body').innerText); };
+  lab.insertBefore(b, lab.querySelector('time'));
+}
+function openSearch(){
+  show('chat'); let box = $('#csearch'); if (box) { box.remove(); return; }
+  box = document.createElement('div'); box.id = 'csearch'; box.className = 'csearch';
+  box.innerHTML = `<div class="csh"><input class="in" id="cs_q" placeholder="Search all your chats (Gemini, Codex, Claude)…"><button class="icon" id="cs_x" title="Close">${XICO}</button></div><div class="csr" id="cs_r"><div class="note" style="padding:10px 4px">Type at least two letters.</div></div>`;
+  document.querySelector('.app').insertBefore(box, $('#view-chat')); $('#cs_q').focus(); $('#cs_x').onclick = () => box.remove();
+  let t; $('#cs_q').oninput = () => { clearTimeout(t); t = setTimeout(async () => { const q = $('#cs_q').value.trim(); const r = await call('chat_search', q) || []; const lbl = n => ((S.provider && S.provider.all) || []).find(p => p.name === n)?.label || n;
+    const hl = s => { let h = esc(s); for (const w of q.split(/\s+/).filter(x => x.length > 1)) h = h.replace(new RegExp('(' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ')', 'ig'), '<mark>$1</mark>'); return h; };
+    $('#cs_r').innerHTML = r.length ? r.map((x, i) => `<div class="csi" data-i="${i}"><div class="csm"><span class="badge">${esc(lbl(x.provider))}</span><span>${x.role==='user'?'You':'AI'} · ${esc(new Date(x.at*1000).toLocaleString([], {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}))}</span></div><div>${hl(x.snippet)}</div></div>`).join('') : `<div class="note" style="padding:10px 4px">${q.length < 2 ? 'Type at least two letters.' : 'No matches.'}</div>`;
+    $('#cs_r').querySelectorAll('.csi').forEach(el => el.onclick = () => { const x = r[+el.dataset.i]; S.jumpTo = x.snippet.replace(/^…/, '').slice(0, 40); box.remove(); if (!S.provider || S.provider.name !== x.provider) call('set_provider', x.provider); else jumpToMessage(); }); }, 220); };
+}
+function jumpToMessage(){
+  const needle = S.jumpTo; if (!needle) return; S.jumpTo = null;
+  const m = [...document.querySelectorAll('#view-chat .msg')].reverse().find(el => el.textContent.replace(/\s+/g, ' ').includes(needle.trim().slice(0, 30)));
+  if (m) { m.scrollIntoView({ block: 'center' }); m.classList.add('flash'); setTimeout(() => m.classList.remove('flash'), 1800); }
+}
+
+/* planner: workflows + activity (background jobs) */
+const STEP_LABEL = { ai: 'AI', cmd: 'Command', notify: 'Notify', wait: 'Wait' };
+const PLAY = '<svg viewBox="0 0 24 24"><path d="M7 5v14l11-7z"/></svg>';
+const FLOW = '<svg viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.5 6H14a4 4 0 0 1 0 8h-4a4 4 0 0 0 0 8"/></svg>';
+function provOptions(sel, auto = true){ const ps = (S.provider && S.provider.all) || []; return (auto ? `<option value="">Auto (best AI)</option>` : '') + ps.map(p => `<option value="${p.name}" ${p.name===sel?'selected':''}>${esc(p.label)}</option>`).join(''); }
+async function renderWorkflows(){
+  const v = $('#pl-body'); const list = (S.snap && S.snap.workflows) || []; const tpls = await call('workflow_templates') || [];
+  const have = new Set(list.map(w => w.name));
+  v.innerHTML = `<div class="ptop"><div><b>Workflows</b><small>Several steps in one click — AI, commands and notifications. Run them yourself, on a schedule, or when a file appears.</small></div><button class="btn primary" id="wf_new">New workflow</button></div>
+    <div id="wf_edit"></div>
+    <div class="plist">${list.length ? list.map(w => `<div class="pitem"><span class="pico clock">${FLOW}</span><div class="pt"><b>${esc(w.name)}</b><small>${w.steps.map(s => `<span class="badge">${STEP_LABEL[s.type]}${s.type==='ai'&&s.mode==='do'?' · Do':''}</span>`).join('')}${w.runs ? `<span>· ran ${w.runs}×</span>` : ''}</small>${w.description ? `<small>${esc(w.description)}</small>` : ''}</div>
+      <div class="pact"><button class="btn primary" data-run="${w.id}" data-file="${w.steps.some(s => /\{file\}/.test(s.prompt||s.command||''))?1:''}">Run</button><button class="icon" data-ed="${w.id}" title="Edit">${EDIT}</button><button class="icon" data-del="${w.id}" title="Delete">${XICO}</button></div></div>`).join('') : '<div class="pempty"><b>No workflows yet</b><span>Start from a template below or build your own.</span></div>'}</div>
+    <h4 class="ph4" style="margin-top:16px">Templates</h4>
+    <div class="tpls">${tpls.map(t => `<div class="tpl"><b>${esc(t.name)}</b><small>${esc(t.description)}</small><button class="btn" data-tpl="${t.key}" ${have.has(t.name)?'disabled':''}>${have.has(t.name)?'Added':'Add'}</button></div>`).join('')}</div>`;
+  v.querySelectorAll('[data-tpl]').forEach(b => b.onclick = async () => { try { await call('workflow_add_template', b.dataset.tpl); toast('Workflow added'); } catch (e) { toast(errMsg(e)); } });
+  v.querySelectorAll('[data-run]').forEach(b => b.onclick = async () => { try { const j = await call('workflow_run', b.dataset.run, {}, b.dataset.file ? 'pick' : ''); if (j) { toast('Running — see Activity'); S.ptab = 'activity'; ensurePlanner().querySelectorAll('#ptabs button').forEach(x => x.classList.toggle('active', x.dataset.t==='activity')); renderPlanner(); } } catch (e) { toast(errMsg(e)); } });
+  v.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this workflow?')) call('workflow_remove', b.dataset.del); });
+  v.querySelectorAll('[data-ed]').forEach(b => b.onclick = () => editWorkflow(list.find(w => w.id === b.dataset.ed)));
+  $('#wf_new').onclick = () => editWorkflow({ name: '', steps: [{ type: 'ai', prompt: '', mode: 'ask', provider: '' }] });
+}
+function editWorkflow(w){
+  const box = $('#wf_edit'); const steps = JSON.parse(JSON.stringify(w.steps || []));
+  const draw = () => {
+    box.innerHTML = `<div class="pform"><input class="in" id="wf_name" placeholder="Workflow name" value="${esc(w.name||'')}" maxlength="60">
+      ${steps.map((s, i) => `<div class="wstep" data-i="${i}"><div class="wsh"><span class="wn">${i+1}</span><select class="in sel ws_type">${Object.entries(STEP_LABEL).map(([k,l]) => `<option value="${k}" ${k===s.type?'selected':''}>${l}</option>`).join('')}</select>
+        ${s.type==='ai' ? `<select class="in sel ws_prov">${provOptions(s.provider)}</select><div class="radio ws_mode"><button data-m="ask" class="${s.mode!=='do'?'active':''}">Ask</button><button data-m="do" class="${s.mode==='do'?'active':''}">Do</button></div>` : ''}
+        <span class="sp"></span><button class="icon ws_up" title="Move up">↑</button><button class="icon ws_del" title="Remove step">${XICO}</button></div>
+        ${s.type==='ai' ? `<textarea class="in ws_text" rows="2" placeholder="What should the AI do? {prev} = previous step's output, {file} = file it was started with">${esc(s.prompt||'')}</textarea>` : s.type==='cmd' ? `<input class="in ws_text" placeholder="Command, e.g. npm run build  (asks you first unless it's a safe local command)" value="${esc(s.command||'')}">` : s.type==='notify' ? `<input class="in ws_text" placeholder="Message to show and send to your phone" value="${esc(s.text||'')}">` : `<input class="in ws_text" type="number" min="1" max="3600" value="${s.seconds||5}" style="max-width:110px"> <span class="note">seconds</span>`}</div>`).join('')}
+      <div class="ctl"><button class="btn" id="ws_add">+ Add step</button><span class="sp" style="flex:1"></span><span class="perr" id="wf_err"></span><button class="btn" id="wf_cancel">Cancel</button><button class="btn primary" id="wf_save">Save workflow</button></div></div>`;
+    const read = () => box.querySelectorAll('.wstep').forEach(el => { const s = steps[+el.dataset.i]; const t = el.querySelector('.ws_text'); if (s.type==='ai') { s.prompt = t.value; s.provider = el.querySelector('.ws_prov').value; } else if (s.type==='cmd') s.command = t.value; else if (s.type==='notify') s.text = t.value; else s.seconds = +t.value; });
+    box.querySelectorAll('.wstep').forEach(el => { const i = +el.dataset.i;
+      el.querySelector('.ws_type').onchange = e => { read(); steps[i] = { type: e.target.value, mode: 'ask', provider: '' }; w.name = $('#wf_name').value; draw(); };
+      el.querySelectorAll('.ws_mode button').forEach(b => b.onclick = () => { read(); steps[i].mode = b.dataset.m; w.name = $('#wf_name').value; draw(); });
+      el.querySelector('.ws_del').onclick = () => { read(); steps.splice(i, 1); w.name = $('#wf_name').value; draw(); };
+      el.querySelector('.ws_up').onclick = () => { read(); if (i) { [steps[i-1], steps[i]] = [steps[i], steps[i-1]]; } w.name = $('#wf_name').value; draw(); }; });
+    $('#ws_add').onclick = () => { read(); steps.push({ type: 'ai', prompt: '', mode: 'ask', provider: '' }); w.name = $('#wf_name').value; draw(); };
+    $('#wf_cancel').onclick = () => { box.innerHTML = ''; };
+    $('#wf_save').onclick = async () => { read(); try { await call('workflow_save', { id: w.id, name: $('#wf_name').value, description: w.description || '', steps }); box.innerHTML = ''; toast('Workflow saved'); renderWorkflows(); } catch (e) { $('#wf_err').textContent = errMsg(e); } };
+    $('#wf_name').focus();
+  };
+  draw(); box.scrollIntoView({ block: 'nearest' });
+}
+const EDIT = '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>';
+function jobIcon(j){ return j.status==='running' ? '<span class="jst run"></span>' : j.status==='queued' ? '<span class="jst q"></span>' : j.status==='done' ? '<span class="jst ok"></span>' : j.status==='event' ? '<span class="jst ev"></span>' : '<span class="jst bad"></span>'; }
+const SRC_LABEL = { manual: 'You', chat: '/bg', ai: 'AI', schedule: 'Schedule', watch: 'Folder', folder: 'Folder', github: 'GitHub' };
+function renderActivity(){
+  const v = $('#pl-body');
+  v.innerHTML = `<details class="pform more" id="bg_new" style="padding:11px 12px"><summary><b style="font-weight:600">New background task</b> <small style="color:var(--muted)">· runs while you keep chatting</small></summary>
+      <textarea class="in" id="bg_prompt" rows="3" style="margin-top:10px" placeholder="e.g. Research the top 10 casual puzzle games' first-session tutorials and summarise the patterns"></textarea>
+      <div class="prow" style="margin-top:8px"><label>AI<select class="in sel" id="bg_prov">${provOptions('')}</select></label><label>Mode<div class="radio" id="bg_mode"><button data-m="ask" class="active">Ask</button><button data-m="do">Do</button></div></label></div>
+      <div class="prow end" style="margin-top:8px"><span class="perr" id="bg_err"></span><button class="btn primary" id="bg_go">Start</button></div></details>
+    <div class="ptop" style="margin-top:4px"><div><b>Activity</b><small>Background jobs, workflow runs, watcher alerts.</small></div><button class="btn" id="jobs_clear">Clear finished</button></div>
+    <div class="plist" id="jobs_list"></div>`;
+  let mode = 'ask'; v.querySelectorAll('#bg_mode button').forEach(b => b.onclick = () => { mode = b.dataset.m; v.querySelectorAll('#bg_mode button').forEach(x => x.classList.toggle('active', x===b)); });
+  $('#bg_go').onclick = async () => { try { await call('job_start', { prompt: $('#bg_prompt').value, provider: $('#bg_prov').value, mode }); $('#bg_prompt').value = ''; $('#bg_err').textContent = ''; $('#bg_new').open = false; } catch (e) { $('#bg_err').textContent = errMsg(e); } };
+  $('#jobs_clear').onclick = () => call('jobs_clear');
+  renderJobList();
+}
+S.openJobs = new Set();
+function renderJobList(){
+  const box = $('#jobs_list'); if (!box) return; const jobs = ((S.snap && S.snap.jobs) || []).slice().sort((a, b) => b.started - a.started); const lbl = n => ((S.provider && S.provider.all) || []).find(p => p.name === n)?.label || '';
+  box.innerHTML = jobs.length ? jobs.map(j => { const open = S.openJobs.has(j.id); const dur = j.ended && j.started ? Math.max(1, Math.round(j.ended - j.started)) : 0;
+    return `<div class="pitem job ${j.status}" data-id="${j.id}">${jobIcon(j)}<div class="pt"><b>${esc(j.title)}</b><small><span class="badge">${SRC_LABEL[j.source]||j.source}</span>${lbl(j.provider) ? `<span class="badge">${esc(lbl(j.provider))}</span>` : ''}${j.mode==='do'?'<span class="badge do">Do</span>':''}<span>${esc(whenAgo(j.started))}${dur ? ' · ' + (dur < 90 ? dur + 's' : Math.round(dur/60) + ' min') : ''}</span></small>
+      ${j.steps ? `<div class="jsteps">${j.steps.map((s, i) => `<span class="jstep ${s.status}">${i+1}. ${STEP_LABEL[s.type]}</span>`).join('')}</div>` : ''}
+      ${j.output && j.status !== 'event' ? `<div class="jout ${open?'open':''}">${esc(String(j.output).trim().slice(-4000))}</div>` : ''}${j.status==='event' && /^https?:/.test(j.output||'') ? `<a href="#" class="jlink" data-url="${esc(j.output)}">Open</a>` : ''}</div>
+      <div class="pact">${j.status==='running'||j.status==='queued' ? `<button class="btn" data-stop="${j.id}">Stop</button>` : j.output && j.status!=='event' ? `<button class="icon" data-copy="${j.id}" title="Copy result">${COPYI}</button>` : ''}</div></div>`; }).join('')
+    : '<div class="pempty"><b>Nothing running</b><span>Type <code>/bg your task</code> in chat, start one above, or run a workflow.</span></div>';
+  box.querySelectorAll('.job .pt').forEach(el => el.onclick = e => { if (e.target.closest('a')) return; const id = el.parentElement.dataset.id; if (S.openJobs.has(id)) S.openJobs.delete(id); else S.openJobs.add(id); renderJobList(); });
+  box.querySelectorAll('[data-stop]').forEach(b => b.onclick = () => call('job_stop', b.dataset.stop));
+  box.querySelectorAll('[data-copy]').forEach(b => b.onclick = () => { const j = jobs.find(x => x.id === b.dataset.copy); navigator.clipboard.writeText(String(j.output||'').trim()); toast('Copied'); });
+  box.querySelectorAll('a.jlink').forEach(a => a.onclick = e => { e.preventDefault(); call('open_url', a.dataset.url); });
+}
+const COPYI = '<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/></svg>';
+function whenAgo(t){ const s = Date.now()/1000 - t; if (s < 60) return 'just now'; if (s < 3600) return Math.round(s/60) + ' min ago'; if (s < 86400) return Math.round(s/3600) + ' h ago'; return new Date(t*1000).toLocaleDateString([], { month:'short', day:'numeric' }); }
+
+/* planner: tasks · reminders · schedules */
+S.ptab = 'tasks';
+const REPEAT_LABEL = { '': 'Once', hourly: 'Every hour', daily: 'Every day', weekdays: 'Weekdays', weekly: 'Every week' };
+const errMsg = e => String((e && e.message) || e || 'Something went wrong').replace(/^Error invoking remote method '[^']*':\s*(Error:\s*)?/, '');
+const pad2 = n => String(n).padStart(2, '0');
+const toLocalInput = d => `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+function whenText(at){
+  const d = new Date(at*1000), now = new Date(); const diff = at - Date.now()/1000;
+  const day = d.toDateString() === now.toDateString() ? 'Today' : d.toDateString() === new Date(Date.now()+864e5).toDateString() ? 'Tomorrow' : d.toLocaleDateString([], { weekday:'short', month:'short', day:'numeric' });
+  const time = d.toLocaleTimeString([], { hour:'numeric', minute:'2-digit' });
+  const rel = diff < 0 ? 'now' : diff < 3600 ? `in ${Math.max(1, Math.round(diff/60))} min` : diff < 86400 ? `in ${Math.round(diff/3600)} h` : `in ${Math.round(diff/86400)} d`;
+  return `${day} ${time} · ${rel}`;
+}
+function quickTimes(){ const n = new Date(); const t9 = new Date(n); t9.setDate(t9.getDate()+1); t9.setHours(9,0,0,0); const eve = new Date(n); eve.setHours(18,0,0,0); const q = [['In 10 min', new Date(+n+6e5)], ['In 1 hour', new Date(+n+36e5)]]; if (eve > new Date(+n+36e5)) q.push(['This evening', eve]); q.push(['Tomorrow 9:00', t9]); return q; }
+function ensurePlanner(){
+  const v = $('#view-tasks'); if (v.querySelector('#ptabs')) return v;
+  v.innerHTML = `<div class="ptabs" id="ptabs">${[['tasks','Tasks'],['reminders','Reminders'],['schedules','Schedules'],['workflows','Workflows'],['activity','Activity']].map(([k,l]) => `<button data-t="${k}" class="${S.ptab===k?'active':''}">${l}<span class="cnt" data-c="${k}"></span></button>`).join('')}</div><div id="pl-body"></div>`;
+  v.querySelectorAll('#ptabs button').forEach(b => b.onclick = () => { S.ptab = b.dataset.t; v.querySelectorAll('#ptabs button').forEach(x => x.classList.toggle('active', x===b)); renderPlanner(); });
+  return v;
+}
+function planCounts(){
+  const s = S.snap || {}; const c = { tasks: (s.tasks||[]).filter(t=>!t.done).length, reminders: (s.reminders||[]).length, schedules: (s.schedules||[]).filter(x=>x.enabled).length, workflows: (s.workflows||[]).length, activity: (s.jobs||[]).filter(j=>j.status==='running'||j.status==='queued').length };
+  document.querySelectorAll('#ptabs .cnt').forEach(e => e.textContent = c[e.dataset.c] ? c[e.dataset.c] : '');
+}
+function renderPlanner(){ ensurePlanner(); planCounts(); if (S.ptab==='reminders') renderReminders(); else if (S.ptab==='schedules') renderSchedules(); else if (S.ptab==='workflows') renderWorkflows(); else if (S.ptab==='activity') renderActivity(); else renderTaskBody(S.snap.tasks || []); }
+function renderTasks(tasks){ if (S.snap) S.snap.tasks = tasks; ensurePlanner(); planCounts(); if (S.ptab==='tasks') renderTaskBody(tasks); }
+function renderTaskBody(tasks){
+  const v = $('#pl-body'); const open = tasks.filter(t=>!t.done), done = tasks.filter(t=>t.done);
+  v.innerHTML = `<div class="row" style="margin-bottom:14px"><input class="in" id="newtask" placeholder="Add a task and press Enter"><button class="btn primary" id="addtask">Add</button></div>
+    ${tasks.length ? '' : '<div class="pempty"><b>No tasks yet</b><span>Add one here, type <code>/task</code> in chat, or let your AI add them.</span></div>'}
+    ${open.map(taskRow).join('')}
+    ${done.length ? `<div class="section" style="margin-top:14px"><h4>Done · ${done.length} <button class="btn" id="cleardone" style="float:right;padding:3px 9px;margin-top:-4px">Clear</button></h4>${done.map(taskRow).join('')}</div>` : ''}`;
+  const add = () => { const t = $('#newtask').value.trim(); if(t){ call('add_task', t); $('#newtask').value=''; } };
+  $('#addtask').onclick = add; $('#newtask').onkeydown = e => { if(e.key==='Enter') add(); }; $('#newtask').focus();
+  v.querySelectorAll('.task input').forEach(c => c.onchange = () => call('set_task_done', c.dataset.id, c.checked));
+  $('#cleardone') && ($('#cleardone').onclick = () => call('clear_done_tasks'));
+}
+function repeatSelect(id){ return `<select class="in sel" id="${id}">${Object.entries(REPEAT_LABEL).map(([k,l]) => `<option value="${k}">${l}</option>`).join('')}</select>`; }
+function renderReminders(){
+  const v = $('#pl-body'); const def = new Date(Date.now() + 30*6e4); def.setSeconds(0,0);
+  v.innerHTML = `<div class="pform">
+    <input class="in" id="rm_text" placeholder="What should I remind you about?" maxlength="300">
+    <div class="qchips">${quickTimes().map(([l,d]) => `<button class="chip" data-at="${toLocalInput(d)}">${l}</button>`).join('')}</div>
+    <div class="prow"><label>When<input class="in" type="datetime-local" id="rm_at" value="${toLocalInput(def)}"></label><label>Repeat${repeatSelect('rm_rep')}</label></div>
+    <div class="prow end"><span class="perr" id="rm_err"></span><button class="btn primary" id="rm_add">Add reminder</button></div></div>
+    <div class="plist" id="rm_list"></div>`;
+  v.querySelectorAll('.qchips .chip').forEach(c => c.onclick = () => { $('#rm_at').value = c.dataset.at; v.querySelectorAll('.qchips .chip').forEach(x => x.classList.toggle('on', x===c)); $('#rm_text').focus(); });
+  const add = async () => { const at = new Date($('#rm_at').value).getTime()/1000; try { await call('reminder_add', at, $('#rm_text').value, $('#rm_rep').value); $('#rm_text').value=''; $('#rm_err').textContent=''; toast('Reminder set'); } catch (e) { $('#rm_err').textContent = errMsg(e); } };
+  $('#rm_add').onclick = add; $('#rm_text').onkeydown = e => { if (e.key==='Enter') add(); }; $('#rm_text').focus();
+  renderReminderList();
+}
+function renderReminderList(){
+  const box = $('#rm_list'); if (!box) return; const list = (S.snap && S.snap.reminders) || [];
+  box.innerHTML = list.length ? `<h4 class="ph4">Upcoming</h4>` + list.map(r => `<div class="pitem"><span class="pico bell">${BELL}</span><div class="pt"><b>${esc(r.message)}</b><small>${esc(whenText(r.at))}${r.repeat ? ` <span class="badge">${REPEAT_LABEL[r.repeat]}</span>` : ''}</small></div><button class="icon" data-del="${r.id}" title="Delete reminder">${XICO}</button></div>`).join('')
+    : '<div class="pempty"><b>No reminders</b><span>Set one above, or type <code>/remind 10m stretch</code> in chat. Buddy pings you here, on the pet and on your phone if it is linked.</span></div>';
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => call('reminder_remove', b.dataset.del));
+}
+function renderSchedules(){
+  const v = $('#pl-body'); const def = new Date(); def.setDate(def.getDate()+1); def.setHours(9,0,0,0);
+  const provs = (S.provider && S.provider.all) || [];
+  v.innerHTML = `<div class="pform">
+    <div class="radio" id="sc_kind" style="align-self:flex-start"><button data-k="ai" class="active">AI task</button><button data-k="wf">Workflow</button></div>
+    <textarea class="in" id="sc_prompt" rows="3" placeholder="What should the AI do? e.g. Summarise new messages in my Ads Google Chat space" maxlength="4000"></textarea>
+    <div class="prow" id="sc_wfrow" style="display:none"><label>Workflow<select class="in sel" id="sc_wf">${((S.snap&&S.snap.workflows)||[]).map(w => `<option value="${w.id}">${esc(w.name)}</option>`).join('') || '<option value="">No workflows yet — Planner → Workflows</option>'}</select></label></div>
+    <div class="prow"><label>First run<input class="in" type="datetime-local" id="sc_at" value="${toLocalInput(def)}"></label><label>Repeat${repeatSelect('sc_rep')}</label></div>
+    <div class="prow" id="sc_airow"><label>AI<select class="in sel" id="sc_prov"><option value="">Current AI</option>${provs.map(p => `<option value="${p.name}">${esc(p.label)}</option>`).join('')}</select></label><label>Mode<div class="radio" id="sc_mode"><button data-m="ask" class="active">Ask</button><button data-m="do">Do</button></div></label></div>
+    <label class="toggle" id="sc_bgrow" style="font-size:12.5px;color:var(--muted)"><input type="checkbox" id="sc_bg"> Run in the background (keeps Chat free; result in Activity)</label>
+    <div class="note" style="margin:2px 0 0">Runs on this PC while Buddy is open; results land in Chat and on your phone if it is linked. <b style="color:var(--fg)">Do</b> lets it edit and run things in your working folder.</div>
+    <div class="prow end"><span class="perr" id="sc_err"></span><button class="btn primary" id="sc_add">Add schedule</button></div></div>
+    <div class="plist" id="sc_list"></div>`;
+  $('#sc_rep').value = 'daily';
+  let mode = 'ask'; v.querySelectorAll('#sc_mode button').forEach(b => b.onclick = () => { mode = b.dataset.m; v.querySelectorAll('#sc_mode button').forEach(x => x.classList.toggle('active', x===b)); });
+  let kind = 'ai'; v.querySelectorAll('#sc_kind button').forEach(b => b.onclick = () => { kind = b.dataset.k; v.querySelectorAll('#sc_kind button').forEach(x => x.classList.toggle('active', x===b)); const wf = kind==='wf'; $('#sc_prompt').style.display = wf ? 'none' : ''; $('#sc_airow').style.display = wf ? 'none' : ''; $('#sc_bgrow').style.display = wf ? 'none' : ''; $('#sc_wfrow').style.display = wf ? '' : 'none'; });
+  $('#sc_add').onclick = async () => { const at = new Date($('#sc_at').value).getTime()/1000; const wfSel = $('#sc_wf'); const wfName = wfSel.options[wfSel.selectedIndex] ? wfSel.options[wfSel.selectedIndex].text : ''; try { if (kind==='wf' && !wfSel.value) throw new Error('Create a workflow first (Planner → Workflows).'); await call('schedule_add', kind==='wf' ? { workflow: wfSel.value, title: wfName, prompt: 'Workflow: ' + wfName, at, repeat: $('#sc_rep').value } : { prompt: $('#sc_prompt').value, at, repeat: $('#sc_rep').value, mode, provider: $('#sc_prov').value, background: $('#sc_bg').checked }); $('#sc_prompt').value=''; $('#sc_err').textContent=''; toast('Schedule added'); } catch (e) { $('#sc_err').textContent = errMsg(e); } };
+  renderScheduleList();
+}
+function renderScheduleList(){
+  const box = $('#sc_list'); if (!box) return; const list = (S.snap && S.snap.schedules) || []; const lbl = n => ((S.provider && S.provider.all) || []).find(p => p.name === n)?.label || n;
+  box.innerHTML = list.length ? `<h4 class="ph4">Scheduled</h4>` + list.map(s => `<div class="pitem ${s.enabled?'':'off'}"><span class="pico clock">${CLOCK}</span><div class="pt"><b>${esc(s.title)}</b><small>${s.enabled ? 'Next: ' + esc(whenText(s.at)) : (s.last ? 'Finished' : 'Paused')} <span class="badge">${REPEAT_LABEL[s.repeat||'']}</span><span class="badge ${s.mode==='do'?'do':''}">${s.mode==='do'?'Do':'Ask'}</span>${s.provider ? `<span class="badge">${esc(lbl(s.provider))}</span>` : ''}</small>${s.last ? `<small class="last ${s.last.ok?'ok':'bad'}">${s.last.ok?'Last run OK':'Last run failed'} · ${esc(new Date(s.last.at*1000).toLocaleString([], {month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}))}${s.last.summary ? ' — ' + esc(s.last.summary) : ''}</small>` : ''}</div>
+    <div class="pact"><input type="checkbox" class="sw" data-en="${s.id}" ${s.enabled?'checked':''} title="On / off"><button class="btn" data-run="${s.id}" title="Run it now">Run now</button><button class="icon" data-del="${s.id}" title="Delete schedule">${XICO}</button></div></div>`).join('')
+    : '<div class="pempty"><b>No schedules</b><span>Let the AI do recurring work for you — a morning summary, a weekly report, a nightly check.</span></div>';
+  box.querySelectorAll('[data-en]').forEach(c => c.onchange = async () => { try { await call('schedule_update', c.dataset.en, { enabled: c.checked }); } catch (e) { toast(errMsg(e)); } });
+  box.querySelectorAll('[data-run]').forEach(b => b.onclick = async () => { try { const r = await call('schedule_run_now', b.dataset.run); toast(r && r.queued ? 'Queued — runs when the current reply finishes' : 'Started — see Chat'); if (r && r.started) show('chat'); } catch (e) { toast(errMsg(e)); } });
+  box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { if (confirm('Delete this schedule?')) call('schedule_remove', b.dataset.del); });
+}
+const BELL = '<svg viewBox="0 0 24 24"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>';
+const CLOCK = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
+const XICO = '<svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg>';
+function taskRow(t){ const d = new Date(t.created*1000); return `<label class="task ${t.done?'done':''}"><input type="checkbox" data-id="${t.id}" ${t.done?'checked':''}><span>${esc(t.text)}</span><time>${d.toLocaleDateString([], {month:'short', day:'numeric'})}</time></label>`; }
+
+/* connect */
+const CONNECT = [['claude','Claude','Claude Desktop and Claude Code, set up together.'],['codex','Codex','Codex app and CLI.'],['gemini','Gemini','Google\'s Antigravity CLI. Buddy installs it; a free Google account works.']];
+const CSTAT = { configured:['Connected','ok'], not_configured:['Not connected',''], other:["Name 'buddy' is taken",'bad'], other_install:['Points at another Buddy copy','bad'], missing:['App not found',''] };
+async function renderConnect(){
+  const v = $('#view-connect'); const keep = $('#cmsg') ? $('#cmsg').innerHTML : '';
+  v.innerHTML = `<div class="set-group"><h4>AI apps</h4><div class="note" style="margin:0 2px 10px">Connected apps show their progress in Buddy and can use your attached files, tasks and reminders.</div>
+  ${CONNECT.map(c => `<div class="cardc" data-k="${c[0]}"><div class="t"><b>${c[1]}</b><small>${c[2]}</small><div class="st"><span class="dot"></span><span class="stt">Checking…</span></div></div><div class="ctl col"><button class="btn primary" data-c="${c[0]}">Connect</button>${c[0]==='claude'?'<button class="btn" data-b="1" style="display:none" title="Pick the Claude Desktop config folder manually">Browse…</button>':''}</div></div>`).join('')}
+  <div class="note" style="margin:2px 2px 0">Restart the app after connecting so it picks up Buddy.</div>
+  <details class="more box2"><summary>Claude Desktop progress updates <small>· optional</small></summary><div class="note" style="margin:8px 0 6px">Claude Desktop needs one line in Settings → Profile → <i>personal preferences</i>. Paste this once:</div><div class="msgbox" id="instr" style="margin-top:0"></div><button class="btn" id="copyinstr" style="margin-top:8px">Copy</button></details>
+  <div id="cmsg">${keep}</div></div>
+  <div class="set-group"><h4>Google · Chat, Calendar, Gmail</h4>
+    <div class="cardc" id="gcard"><div class="t"><b>Google</b><small id="gsmall">Chat messages, today's meetings and unread mail for Claude and Codex — plus meeting reminders and the Morning briefing. Calendar and Gmail are read-only.</small><div class="st"><span class="dot" id="gdot"></span><span class="stt" id="gstt">Checking…</span></div></div><div class="ctl col"><button class="btn" id="gpick">1 · Pick credentials.json</button><button class="btn primary" id="gsign">2 · Sign in with Google</button><button class="btn danger" id="gdisc" style="display:none">Disconnect</button></div></div>
+    <details id="ghelp" class="more box2"><summary>How to get credentials.json <small>· one time, ~5 min</small></summary><ol class="note steps-ol">
+      <li>Open <a href="#" data-url="https://console.cloud.google.com/projectcreate">Google Cloud → New project</a> (any name, e.g. <code>Buddy</code>).</li>
+      <li>Enable <a href="#" data-url="https://console.cloud.google.com/apis/library/chat.googleapis.com">Google Chat API</a>. On its <b>Configuration</b> tab: <b>untick</b> "Build this Chat app as a Workspace add-on", set App name <code>Buddy</code>, avatar URL <code>https://developers.google.com/chat/images/quickstart-app-avatar.png</code>, description <code>Buddy</code>, switch <b>Interactive features off</b>, Save.</li>
+      <li>Also enable <a href="#" data-url="https://console.cloud.google.com/apis/library/calendar-json.googleapis.com">Google Calendar API</a> and <a href="#" data-url="https://console.cloud.google.com/apis/library/gmail.googleapis.com">Gmail API</a> for meetings and mail. Signed in before? Press <b>Sign in again</b> once so Buddy gets these permissions.</li>
+      <li><a href="#" data-url="https://console.cloud.google.com/auth/overview">Google Auth platform → Get started</a>: name <code>Buddy</code>, your email, audience <b>Internal</b> (Workspace) or <b>External</b> + add yourself as a test user.</li>
+      <li><a href="#" data-url="https://console.cloud.google.com/auth/clients/create">Create OAuth client</a> of type <b>Desktop app</b> → <b>Download JSON</b>.</li>
+      <li>Click <b>1 · Pick credentials.json</b>, then <b>2 · Sign in with Google</b>.</li></ol></details>
+    <div id="gmsg"></div></div>
+  <div class="set-group"><h4>Phone</h4><div class="note" style="margin:0 2px 10px">Message a bot from your phone and Buddy runs it on this PC, then replies with text and images.</div>
+    <div class="cardc" data-r="telegram"><div class="t"><b>Telegram</b><small>Get a bot token from <a href="#" data-url="https://t.me/BotFather">@BotFather</a> → /newbot. Free, 2 minutes.</small><div class="st"><span class="dot"></span><span class="stt">Checking…</span></div><input class="in rtok" placeholder="Paste bot token" style="margin-top:8px;width:100%"></div><div class="ctl col"><button class="btn primary rconn">Connect</button><button class="btn danger runl" style="display:none">Unlink</button></div></div>
+    <div class="cardc" data-r="slack"><div class="t"><b>Slack</b><small><a href="#" data-url="https://api.slack.com/apps?new_app=1">Create a Slack app</a>, add bot scopes <code>chat:write im:history im:read im:write users:read files:write</code>, install it, then paste the <code>xoxb-</code> token.</small><div class="st"><span class="dot"></span><span class="stt">Checking…</span></div><input class="in rtok" placeholder="xoxb-…" style="margin-top:8px;width:100%"></div><div class="ctl col"><button class="btn primary rconn">Connect</button><button class="btn danger runl" style="display:none">Unlink</button></div></div>
+    <div class="card" style="background:var(--bg2);border:1px solid var(--line);border-radius:var(--radius)"><label class="srow"><div class="st"><b>Phone alerts</b><small>Ping me when Claude or Codex finish or need me.</small></div><input type="checkbox" class="sw" id="rnotify"></label></div>
+    <details class="more box2"><summary>Phone commands</summary><div class="note" style="margin:8px 0 0"><code>/do task</code> edits and runs · <code>/ask</code> read-only · <code>/status</code> · <code>/stop</code>. Approval requests arrive on the phone too. WhatsApp isn't supported (Meta requires a public business server).</div></details>
+    <div id="rmsg"></div></div>`;
+  renderGchat(); renderRemote();
+  call('instructions_text').then(t => { if (t) $('#instr').textContent = t; });
+  $('#copyinstr').onclick = () => { navigator.clipboard.writeText($('#instr').textContent).then(() => { $('#copyinstr').textContent = 'Copied'; setTimeout(() => $('#copyinstr').textContent = 'Copy', 1200); }); };
+  const st = await call('connect_status') || {};
+  const part = k => { const [label, cls] = CSTAT[st[k]] || ['Unknown','']; return { label, cls }; };
+  v.querySelectorAll('.cardc[data-k]').forEach(c => {
+    if (c.dataset.k === 'claude') {
+      const d = part('claude_desktop'), x = part('claude_code');
+      const any = d.cls === 'ok' || x.cls === 'ok', bad = d.cls === 'bad' || x.cls === 'bad';
+      c.querySelector('.stt').textContent = `Desktop: ${d.label} · Code: ${x.label}`;
+      c.querySelector('.dot').className = 'dot ' + (bad ? 'bad' : any ? 'ok' : '');
+      c.querySelector('[data-b]').style.display = st.claude_desktop === 'missing' ? '' : 'none';
+      if (any && !bad && st.claude_desktop !== 'not_configured' && st.claude_code !== 'not_configured') { const b = c.querySelector('[data-c]'); b.textContent = 'Reconnect'; b.className = 'btn'; }
+    } else { const p = part(c.dataset.k); c.querySelector('.stt').textContent = p.label; c.querySelector('.dot').className = 'dot ' + p.cls; if (p.cls === 'ok') { const b = c.querySelector('[data-c]'); b.textContent = 'Reconnect'; b.className = 'btn'; } }
+  });
+  v.querySelectorAll('[data-c]').forEach(b => b.onclick = async () => { b.textContent='…'; const r = await call('connect', b.dataset.c); showCMsg(r); renderConnect(); });
+  v.querySelectorAll('[data-b]').forEach(b => b.onclick = async () => { const r = await call('browse_claude'); if(r) showCMsg(r); renderConnect(); });
+}
+async function renderRemote(st){
+  st = st || await call('remote_status') || {};
+  const v = $('#view-connect'); if(!v.querySelector('[data-r]')) return;
+  v.querySelectorAll('[data-r]').forEach(c => {
+    const k = c.dataset.r, r = st[k] || {}; const dot = c.querySelector('.dot'), stt = c.querySelector('.stt'), tok = c.querySelector('.rtok'), conn = c.querySelector('.rconn'), unl = c.querySelector('.runl');
+    if (r.configured) { dot.className = 'dot ' + (r.error ? 'bad' : r.owner ? 'ok' : ''); stt.textContent = r.error ? ('Error: ' + r.error) : r.owner ? `Linked to ${r.owner} via ${r.bot}` : `Bot ${r.bot} ready — send it a message from your phone to link`; tok.style.display = 'none'; conn.textContent = 'Change token'; unl.style.display = ''; }
+    else { dot.className = 'dot'; stt.textContent = 'Not connected'; tok.style.display = ''; conn.textContent = 'Connect'; unl.style.display = 'none'; }
+    conn.onclick = async () => { if (tok.style.display === 'none') { tok.style.display = ''; tok.focus(); conn.textContent = 'Connect'; return; } conn.textContent = '…'; const res = await call('remote_connect', k, tok.value.trim()); $('#rmsg').innerHTML = res.error ? `<div class="msgbox bad">${esc(res.error)}</div>` : `<div class="msgbox ok">Connected (${esc(res.who)}). Now message the bot from your phone.</div>`; renderRemote(res); };
+    unl.onclick = async () => { if (confirm('Unlink ' + k + '?')) renderRemote(await call('remote_unlink', k)); };
+  });
+  const n = $('#rnotify'); n.checked = st.notify !== false; n.onchange = () => call('remote_notify', n.checked);
+  v.querySelectorAll('[data-r] a[data-url]').forEach(a => a.onclick = e => { e.preventDefault(); call('open_url', a.dataset.url); });
+}
+async function renderGchat(st){
+  st = st || await call('gchat_status') || {};
+  const dot = $('#gdot'), stt = $('#gstt'); if(!dot) return;
+  const apps = st.apps || {}; const into = ['claude_code','claude_desktop','codex'].filter(k => apps[k]).map(k => ({claude_code:'Claude Code', claude_desktop:'Claude Desktop', codex:'Codex'})[k]);
+  if (st.account) { dot.className = st.rescope ? 'dot pulse' : 'dot ok'; stt.textContent = `Connected as ${st.account}` + (into.length ? ` → ${into.join(', ')}` : '') + (st.rescope ? ' · sign in again to add Calendar & Gmail' : ''); $('#gsign').textContent='Sign in again'; $('#gsign').disabled = false; $('#gdisc').style.display=''; $('#gpick').textContent='Change credentials.json'; $('#ghelp').open = false; }
+  else { dot.className='dot'; stt.textContent = st.client ? 'Client file ready — now sign in' : 'Not connected'; $('#gpick').textContent = st.client ? '1 · credentials.json ✓' : '1 · Pick credentials.json'; $('#gsign').disabled = !st.client; $('#gsign').textContent = '2 · Sign in with Google'; $('#gdisc').style.display = st.client ? '' : 'none'; }
+  const msg = $('#gmsg'); msg.innerHTML = st.error ? `<div class="msgbox bad">${esc(st.error)}</div>` : '';
+  $('#gpick').onclick = async () => { renderGchat(await call('gchat_pick_client')); };
+  $('#gsign').onclick = async () => { $('#gsign').textContent='Waiting for Google…'; $('#gsign').disabled = true; renderGchat(await call('gchat_sign_in')); };
+  $('#gdisc').onclick = async () => { if(confirm('Disconnect Google Chat from Buddy, Claude and Codex?')) renderGchat(await call('gchat_disconnect')); };
+  document.querySelectorAll('#ghelp a[data-url]').forEach(a => a.onclick = e => { e.preventDefault(); call('open_url', a.dataset.url); });
+}
+function showCMsg(r){ if(!r) return; const m = document.createElement('div'); m.className = 'msgbox '+(r.ok?'ok':'bad'); m.textContent = r.message; const box = $('#cmsg'); box.innerHTML=''; box.appendChild(m); }
+
+/* settings */
+async function renderSettings(){
+  const v = $('#view-settings'); const r = await call('get_settings') || {settings:S.snap.settings, autostart:false, windows:false}; const s = r.settings;
+  v.innerHTML = `
+  <div class="set-group"><h4>General</h4><div class="card">
+    <div class="srow"><div class="st"><b>Assistant name</b><small>What Buddy calls itself.</small></div><input class="in" id="s_assistant" value="${esc(s.assistant_name)}" maxlength="24"></div>
+    <div class="srow"><div class="st"><b>Your name</b><small>How Buddy addresses you.</small></div><input class="in" id="s_boss" value="${esc(s.boss_name)}" maxlength="24"></div>
+    <div class="srow"><div class="st"><b>Where Buddy lives</b><small>Notch at the top of the screen, or a pet you can place anywhere.</small></div><div class="radio" id="s_mode"><button data-m="notch" class="${s.display_mode==='notch'?'active':''}">Notch</button><button data-m="pet" class="${s.display_mode==='pet'?'active':''}">Pet</button></div></div>
+    <label class="srow"><div class="st"><b>Start with Windows</b><small>${r.windows ? 'Open Buddy when you sign in.' : 'Available on Windows only.'}</small></div><input type="checkbox" class="sw" id="s_auto" ${r.autostart?'checked':''} ${r.windows?'':'disabled'}></label>
+  </div></div>
+  <div class="set-group"><h4>AI</h4><div class="card">
+    <div class="srow"><div class="st"><b>Working folder</b><small>Codex and Claude work inside this folder.</small></div><div class="ctl"><input class="in" id="s_workdir" value="${esc(s.workdir||'')}" placeholder="Home folder" style="width:150px"><button class="btn" id="s_browse">Browse</button></div></div>
+    <label class="srow"><div class="st"><b>Verify Do-mode work</b><small>The AI re-checks its own work before reporting (one extra short call).</small></div><input type="checkbox" class="sw" id="s_verify" ${s.verify_do!==false?'checked':''}></label>
+  </div></div>
+  <div class="set-group"><h4>Behaviour</h4><div class="card">
+    <label class="srow"><div class="st"><b>Lock notch</b><small>Stays centred, can't be dragged, opens only when clicked.</small></div><input type="checkbox" class="sw" id="s_lock" ${s.notch_lock?'checked':''}></label>
+    <label class="srow"><div class="st"><b>Lock pet</b><small>Keeps the pet in place; clicks and chat still work.</small></div><input type="checkbox" class="sw" id="s_petlock" ${s.pet_lock?'checked':''}></label>
+    <label class="srow"><div class="st"><b>Reduce motion</b><small>No fidgets, hops or jolts.</small></div><input type="checkbox" class="sw" id="s_reduce" ${s.reduce_motion?'checked':''}></label>
+  </div></div>
+  <div class="set-group"><h4>Assistant</h4><div class="card">
+    <label class="srow"><div class="st"><b>Pick the best AI automatically</b><small>Background jobs, quick actions and schedules use Codex for code, Claude for writing, Gemini for quick questions. In chat Buddy suggests a switch.</small></div><input type="checkbox" class="sw" data-k="auto_pick" ${s.auto_pick!==false?'checked':''}></label>
+    <label class="srow"><div class="st"><b>Quick actions hotkey</b><small>Select text in any app and press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Space</kbd> — explain, fix, translate, reply, summarise.</small></div><input type="checkbox" class="sw" data-k="quick_hotkey" ${s.quick_hotkey!==false?'checked':''}></label>
+    <div class="srow"><div class="st"><b>Hotkey</b><small>If another app already uses it, pick something else, e.g. Alt+Q.</small></div><input class="in" id="s_hk" value="${esc(String(s.quick_hotkey_accel||'CommandOrControl+Shift+Space').replace('CommandOrControl','Ctrl'))}" style="flex:0 1 170px"></div>
+  </div></div>
+  <div class="set-group"><h4>Voice</h4><div class="card">
+    <label class="srow"><div class="st"><b>Read replies aloud</b><small>Buddy speaks its answers. Every reply also has a speaker button.</small></div><input type="checkbox" class="sw" data-k="voice_replies" ${s.voice_replies?'checked':''}></label>
+    <div class="srow"><div class="st"><b>Voice</b><small>Windows voices installed on this PC.</small></div><select class="in sel" id="v_voice" style="flex:0 1 210px"><option value="">System default</option></select></div>
+    <div class="srow"><div class="st"><b>Voice input</b><small>Mic button in the message box. Windows voice typing supports many languages; offline is English only.</small></div><div class="radio" id="v_dict"><button data-m="windows" class="${s.dictation!=='offline'?'active':''}">Windows</button><button data-m="offline" class="${s.dictation==='offline'?'active':''}">Offline</button></div></div>
+    <label class="srow"><div class="st"><b>"Hey ${esc(s.assistant_name||'Buddy')}"</b><small>Say it to open the chat and start listening. Uses Windows speech recognition, nothing leaves your PC.</small></div><input type="checkbox" class="sw" data-k="wake_word" ${s.wake_word?'checked':''}></label>
+  </div></div>
+  <div class="set-group"><h4>Watchers</h4><div class="card">
+    <details class="sblock more" id="w_gh"><summary>GitHub Actions <small id="w_ghsum">· builds and releases</small></summary><div style="margin-top:10px">
+      <div class="note">Buddy pings you (and your phone) when a run starts, passes or fails.</div>
+      <div class="prow"><label>Repos (owner/name, comma separated)<input class="in" id="w_repos" placeholder="owner/repo, owner/other-repo"></label></div>
+      <div class="prow"><label>Token <span style="color:var(--dim)">(needed for private repos: GitHub → Settings → Developer settings → Fine-grained token, read-only Actions)</span><input class="in" id="w_tok" type="password" placeholder="Leave empty to keep the saved one"></label></div>
+      <div class="prow end"><span class="perr" id="w_gherr"></span><button class="btn" id="w_ghpoll">Check now</button><button class="btn primary" id="w_ghsave">Save</button></div>
+      <div id="w_runs"></div></div></details>
+    <details class="sblock more" id="w_fs"><summary>Folders <small>· new builds, exports, downloads</small></summary><div style="margin-top:10px">
+      <div class="note">When a matching file appears, Buddy tells you — or hands it to the AI or a workflow.</div>
+      <div id="w_list"></div>
+      <div class="pform" style="margin:8px 0 0;padding:10px;background:var(--bg3)">
+        <div class="prow"><label>Folder<div class="ctl"><input class="in" id="w_path" placeholder="Pick a folder"><button class="btn" id="w_browse">Browse</button></div></label></div>
+        <div class="prow"><label>Files<input class="in" id="w_pat" value="*" placeholder="*.html, *.zip"></label><label>Then<select class="in sel" id="w_act"><option value="notify">Just tell me</option><option value="ai">Ask the AI</option><option value="workflow">Run a workflow</option></select></label></div>
+        <div class="prow" id="w_aiwrap" style="display:none"><label>What should the AI do? ({file} = the new file)<input class="in" id="w_prompt" placeholder="Check {file} and tell me if anything looks wrong"></label></div>
+        <div class="prow" id="w_wfwrap" style="display:none"><label>Workflow<select class="in sel" id="w_wf"></select></label></div>
+        <div class="prow end"><span class="perr" id="w_err"></span><button class="btn primary" id="w_add">Add watcher</button></div>
+      </div></div></details>
+    <div class="srow"><div class="st"><b>Google Chat messages</b><small>Show new messages on Buddy and reply right there (Connect → Google first).</small></div><select class="in sel" id="w_gc" style="flex:0 1 190px"><option value="direct">DMs, groups &amp; @mentions</option><option value="all">Every space</option><option value="off">Off</option></select></div>
+    <details class="sblock more" id="w_cal"><summary>Calendar <small>· meeting reminders</small></summary><div style="margin-top:10px">
+      <label class="srow" style="padding:0 0 8px"><div class="st"><b>Remind me before meetings</b><small>From your Google Calendar (Connect → Google). Also feeds the Morning briefing workflow.</small></div><input type="checkbox" class="sw" data-k="meeting_reminders" ${s.meeting_reminders!==false?'checked':''}></label>
+      <div class="prow"><label>Minutes before<input class="in" type="number" min="1" max="60" id="w_lead" value="${s.meeting_lead_min||10}" style="max-width:90px"></label></div>
+      <div id="w_events" class="note" style="margin:8px 0 0">Loading…</div></div></details>
+  </div></div>
+  <div class="set-group"><h4>AI tools</h4><div class="card">
+    <label class="srow"><div class="st"><b>Install &amp; update automatically</b><small>Buddy downloads Claude Code, Codex and Gemini (Antigravity) CLI if they are missing and updates them when a new version is out (checked every 6 hours, never during a reply). You only sign in.</small></div><input type="checkbox" class="sw" id="c_auto" ${s.auto_cli!==false?'checked':''}></label>
+    <div id="c_list"><div class="srow"><div class="st"><small style="margin:0">Checking versions…</small></div></div></div>
+    <div class="srow"><div class="st"><small style="margin:0" id="c_note"></small></div><div class="ctl"><button class="btn" id="c_check">Check now</button></div></div>
+  </div></div>
+  <div class="set-group"><h4>Updates</h4><div class="card">
+    <label class="srow"><div class="st"><b>Automatic updates</b><small id="s_upd">Buddy ${esc(S.snap.version)}</small></div><input type="checkbox" class="sw" id="s_autoupd" ${s.auto_update!==false?'checked':''}></label>
+    <div class="srow"><div class="st"><small style="margin:0">Checks GitHub every few hours and asks before restarting.</small></div><div class="ctl"><button class="btn" id="s_updcheck">Check now</button><button class="btn primary" id="s_updapply" style="display:none">Restart &amp; update</button></div></div>
+  </div></div>
+  <div class="set-group"><h4>Advanced</h4><div class="card">
+    <details class="sblock more"><summary>Memory <small>· what the AIs know about you</small></summary><div style="margin-top:10px">
+    <div class="note">Shared with Claude, Codex and Gemini on every task. They can add to Notes themselves (<code>buddy_remember</code>).</div>
+    <div class="radio" id="m_tabs" style="display:inline-flex"><button data-m="profile" class="active">Profile</button><button data-m="projects">Projects</button><button data-m="notes">Notes</button><button data-m="project">This project</button></div>
+    <textarea class="in" id="m_text" spellcheck="false" style="width:100%;min-height:180px;margin-top:8px;font-family:var(--mono);font-size:12px;line-height:1.5;resize:vertical"></textarea>
+    <div class="ctl" style="margin-top:8px"><button class="btn primary" id="m_save">Save memory</button><button class="btn" id="m_folder">Open folder</button><span class="note" id="m_msg" style="margin:0 0 0 4px"></span></div>
+    </div></details>
+    <details class="sblock more" id="k_box"><summary>Knowledge folders <small id="k_sum">· docs the AIs can search</small></summary><div style="margin-top:10px">
+      <div class="note">Add folders with your docs, notes or code. Buddy indexes them on this PC and gives the AI the most relevant passages with every question (and the <code>buddy_knowledge</code> search tool).</div>
+      <div id="k_list"></div>
+      <div class="ctl" style="margin-top:8px"><button class="btn" id="k_add">Add folder…</button><button class="btn" id="k_re">Re-index</button></div>
+      <div class="prow" style="margin-top:8px"><label>Try a search<input class="in" id="k_q" placeholder="e.g. mraid install button"></label></div><div id="k_res"></div></div></details>
+    <details class="sblock more" id="a_box"><summary>Action log <small>· what Buddy did on your PC</small></summary><div style="margin-top:10px"><div id="a_list" class="note">Nothing yet.</div></div></details>
+    <details class="sblock more"><summary>Skills <small>· reusable /commands</small></summary><div style="margin-top:10px">
+    <div class="note">Type <code>/name task…</code> in chat to run a skill in Do mode. Found in <code>Buddy-data\\skills</code>, <code>~/.codex/skills</code> and <code>~/.claude/skills</code>.</div>
+    <div id="s_skills" class="note" style="margin:0 0 6px">Loading…</div><button class="btn" id="s_skillsfolder">Open skills folder</button>
+    </div></details>
+    <details class="sblock more"><summary>Permissions <small>· what needs your approval</small></summary><div style="margin-top:10px">
+    <div class="note"><b style="color:var(--fg)">Automatic</b> — reading and searching files, code edits and new files inside the working folder, local tests and builds.</div>
+    <div class="note"><b style="color:var(--fg)">Needs your Accept</b> — secrets (.env, keys, tokens), changes outside the working folder, delete/overwrite, software installs, git push, deploy/publish, external messages. Accept allows that one action once; timeout or dismiss counts as Reject. Typing "ok", "haan" or "kar do" never approves — only the button does.</div>
+    <div class="note" style="margin:10px 0 4px"><b style="color:var(--fg)">What each AI can enforce</b> (platform limits)</div><div id="s_backends" class="note" style="margin:0"></div>
+    </div></details>
+  </div></div>
+  <div class="set-group"><h4>Danger zone</h4><div class="card">
+    <div class="srow"><div class="st"><b>Clear conversation</b><small>Only the current AI's history; each AI keeps its own.</small></div><button class="btn danger" id="s_clear">Clear</button></div>
+    <div class="srow"><div class="st"><b>Uninstall Buddy</b><small>Removes the app, shortcuts and autostart. You choose whether to keep your data.</small></div><button class="btn danger" id="s_uninstall">Uninstall…</button></div>
+  </div></div>
+  <div id="s_msg"></div>
+  <div class="set-foot"><span class="ver">Buddy ${esc(S.snap.version)}</span><button class="btn primary" id="s_save">Save changes</button></div>`;
+  let mode = s.display_mode;
+  wireAssistantSettings(v, s);
+  v.querySelectorAll('#s_mode button').forEach(b => b.onclick = () => { mode = b.dataset.m; v.querySelectorAll('#s_mode button').forEach(x => x.classList.toggle('active', x===b)); });
+  $('#s_browse').onclick = async () => { const p = await call('browse_folder'); if(p) $('#s_workdir').value = p; };
+  $('#s_clear').onclick = () => { call('clear_chat'); show('chat'); };
+  (async () => {
+    let mem = await call('memory_get') || {}; let cur = 'profile'; const ta = $('#m_text'); ta.value = mem[cur] || '';
+    try { const pn = await call('project_notes_get'); mem.project = pn && pn.workdir ? pn.text : '# No working folder\nSet one in Settings → AI to keep notes per project.'; } catch {}
+    const dirty = {}; ta.oninput = () => { dirty[cur] = ta.value; };
+    v.querySelectorAll('#m_tabs button').forEach(b => b.onclick = () => { dirty[cur] = ta.value; cur = b.dataset.m; v.querySelectorAll('#m_tabs button').forEach(x => x.classList.toggle('active', x===b)); ta.value = dirty[cur] ?? mem[cur] ?? ''; });
+    $('#m_save').onclick = async () => { dirty[cur] = ta.value; for (const k of Object.keys(dirty)) { try { if (k === 'project') await call('project_notes_set', dirty[k]); else await call('memory_set', k, dirty[k]); mem[k] = dirty[k]; } catch (e) { $('#m_msg').textContent = errMsg(e); return; } } $('#m_msg').textContent = 'Saved.'; setTimeout(() => $('#m_msg').textContent = '', 1500); };
+    $('#m_folder').onclick = () => call('open_memory_folder');
+    try { const b = await call('backend_limits'); $('#s_backends').innerHTML = Object.entries(b).map(([k,v]) => `<div style="margin:0 0 8px"><b style="color:var(--fg)">${esc({claude:'Claude',codex:'Codex',gemini:'Gemini'}[k]||k)}</b> — ${esc(v.enforce)}<br><span style="color:var(--dim)">Limit: ${esc(v.limit)}</span></div>`).join(''); } catch {}
+    const sk = await call('skills') || []; const box = $('#s_skills'); box.className = 'note skills-list'; box.innerHTML = sk.length ? sk.map(k => `<div><code>/${esc(k.name)}</code> <span style="opacity:.6">· ${esc(k.source)}</span><div class="skdesc" style="display:none;opacity:.8;margin:1px 0 4px 8px">${esc(k.description || '')}</div></div>`).join('') : 'No skills yet. Drop a folder with a SKILL.md into the skills folder.';
+    box.querySelectorAll('code').forEach(c => { c.style.cursor = 'pointer'; c.title = 'Show description'; c.onclick = () => { const d = c.parentElement.querySelector('.skdesc'); d.style.display = d.style.display === 'none' ? '' : 'none'; }; });
+    if (sk.length > 4) { const more = document.createElement('button'); more.className = 'btn'; more.style.marginTop = '6px'; more.textContent = `Show all ${sk.length} skills`; more.onclick = () => { box.classList.toggle('open'); more.textContent = box.classList.contains('open') ? 'Show less' : `Show all ${sk.length} skills`; }; box.after(more); }
+    $('#s_skillsfolder').onclick = () => call('open_skills_folder');
+  })();
+  const showUpd = st => { if (!st) return; const el = $('#s_upd'); if (!el) return; const m = { idle: '', checking: 'Checking…', latest: 'You have the latest version.', downloading: `Downloading ${st.version}…`, ready: `Version ${st.version} is ready.`, error: 'Update check failed: ' + (st.message || '') }; el.textContent = `Buddy ${st.current}` + (st.repo ? '' : ' · updates not set up yet') + (m[st.state] ? ' · ' + m[st.state] : ''); $('#s_updapply').style.display = st.state === 'ready' ? '' : 'none'; };
+  call('update_status').then(showUpd).catch(() => {}); S.showUpd = showUpd;
+  const ago = t => { if (!t) return 'not yet'; const m = Math.round((Date.now() - t) / 60000); return m < 1 ? 'just now' : m < 60 ? m + ' min ago' : m < 1440 ? Math.round(m / 60) + ' h ago' : Math.round(m / 1440) + ' d ago'; };
+  const showCli = st => {
+    if (!st || !$('#c_list')) return; S.cliSt = st;
+    $('#c_list').innerHTML = st.tools.map(t => {
+      const working = st.busy === t.name;
+      const line = !t.installed ? (working ? 'Installing…' : 'Not installed') : working ? 'Updating…' : t.update ? `${t.version} → <b style="color:var(--accent)">${esc(t.latest)}</b> available` : t.version ? `${esc(t.version)}${t.latest ? ' · up to date' : ''}` : 'Installed';
+      const btn = working ? '' : !t.installed ? `<button class="btn" data-ci="${t.name}">Install</button>` : t.update || t.name === 'gemini' ? `<button class="btn${t.update ? ' primary' : ''}" data-cu="${t.name}">Update</button>` : '';
+      return `<div class="srow" data-cli="${t.name}"><div class="st"><b>${esc(t.label)}</b><small>${line}${t.error ? ` · <span style="color:var(--bad)">${esc(t.error)}</span>` : ''}</small></div><div class="ctl">${btn}</div></div>`;
+    }).join('');
+    const last = Math.max(0, ...st.tools.map(t => t.checked || 0));
+    $('#c_note').textContent = 'Last check: ' + ago(last) + (st.auto ? ' · automatic' : ' · automatic updates are off');
+    $('#c_list').querySelectorAll('[data-cu]').forEach(b => b.onclick = () => { call('cli_update', b.dataset.cu); b.textContent = '…'; b.disabled = true; });
+    $('#c_list').querySelectorAll('[data-ci]').forEach(b => b.onclick = () => { call('install_cli', b.dataset.ci); b.textContent = '…'; b.disabled = true; toast('Installing… Buddy opens the browser to sign in when done.'); });
+  };
+  S.showCli = showCli;
+  call('cli_status').then(st => { showCli(st); if (!st || !st.tools.some(t => t.checked)) call('cli_check').then(showCli).catch(() => {}); }).catch(() => {});
+  $('#c_check').onclick = async () => { $('#c_check').textContent = 'Checking…'; showCli(await call('cli_check')); $('#c_check').textContent = 'Check now'; };
+  $('#c_auto').onchange = async () => showCli(await call('cli_auto', $('#c_auto').checked));
+  $('#s_updcheck').onclick = async () => showUpd(await call('update_check'));
+  $('#s_updapply').onclick = () => call('update_apply');
+  $('#s_uninstall').onclick = async () => {
+    if (!confirm('Uninstall Buddy from this PC?')) return;
+    const keep = confirm('Keep your tasks, settings and chat history (Buddy-data folder)?\n\nOK = keep   Cancel = delete everything');
+    const r = await call('uninstall', keep);
+    if (r && r.error) alert(r.error);
+  };
+  $('#s_save').onclick = async () => {
+    const problems = await call('save_settings', { assistant_name:$('#s_assistant').value, boss_name:$('#s_boss').value, display_mode:mode, workdir:$('#s_workdir').value, autostart:$('#s_auto').checked, reduce_motion:$('#s_reduce').checked, notch_lock:$('#s_lock').checked, pet_lock:$('#s_petlock').checked, auto_update:$('#s_autoupd').checked, verify_do:$('#s_verify').checked }) || [];
+    $('#s_msg').innerHTML = problems.length ? problems.map(p=>`<div class="problem">${esc(p)}</div>`).join('') : '<div class="saved">Saved.</div>';
+    if(!problems.length) setTimeout(()=>{ if(S.view==='settings') show('chat'); }, 500);
+  };
+}
+
+
+/* ---------- skins (shared silhouettes; previews here, live faces in the island) ---------- */
+const SKIN_SVG = {
+  classic: '<svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="44" fill="#f3f4fb"/><rect x="36" y="36" width="9" height="24" rx="4.5" fill="#181b28"/><rect x="55" y="36" width="9" height="24" rx="4.5" fill="#181b28"/></svg>',
+  antenna: '<svg viewBox="0 0 100 100"><g fill="#f3f4fb"><circle cx="19" cy="15" r="7"/><rect x="16" y="15" width="6" height="28"/><circle cx="81" cy="15" r="7"/><rect x="78" y="15" width="6" height="28"/><path d="M10 62C10 36 30 22 50 22s40 14 40 40c0 18-18 30-40 30S10 80 10 62z"/></g><rect x="25" y="46" width="50" height="24" rx="9" fill="#181b28"/><rect x="36" y="52" width="8" height="12" rx="4" fill="#f3f4fb"/><rect x="56" y="52" width="8" height="12" rx="4" fill="#f3f4fb"/></svg>',
+  boxy: '<svg viewBox="0 0 100 100"><g fill="#f3f4fb"><circle cx="50" cy="9" r="6"/><rect x="47" y="9" width="6" height="16"/><rect x="36" y="18" width="7" height="8"/><rect x="57" y="18" width="7" height="8"/><rect x="5" y="44" width="10" height="24" rx="4"/><rect x="85" y="44" width="10" height="24" rx="4"/><rect x="15" y="22" width="70" height="66" rx="12"/></g><circle cx="37" cy="48" r="5.5" fill="#181b28"/><circle cx="63" cy="48" r="5.5" fill="#181b28"/><rect x="37" y="66" width="26" height="6" rx="3" fill="#181b28"/></svg>',
+  cat: '<svg viewBox="0 0 100 100"><g fill="#f3f4fb"><path d="M16 44L22 8l30 22z"/><path d="M84 44L78 8 48 30z"/><path d="M8 58C8 38 26 26 50 26s42 12 42 32c0 20-16 36-42 36S8 78 8 58z"/></g><g stroke="#f3f4fb" stroke-width="2.2" stroke-linecap="round" opacity=".9"><path d="M2 56h12M2 63h12M86 56h12M86 63h12"/></g><rect x="35" y="46" width="8" height="14" rx="4" fill="#181b28"/><rect x="57" y="46" width="8" height="14" rx="4" fill="#181b28"/></svg>',
+  ghost: '<svg viewBox="0 0 100 100"><path fill="#f3f4fb" d="M14 48C14 26 30 10 50 10s36 16 36 38v40c0 4-4 6-7 4l-6-5-6 6c-2 2-5 2-7 0l-6-6-6 6c-2 2-5 2-7 0l-6-6-6 5c-3 2-7 0-7-4z"/><rect x="35" y="36" width="8" height="16" rx="4" fill="#181b28"/><rect x="57" y="36" width="8" height="16" rx="4" fill="#181b28"/></svg>',
+  blob: '<svg viewBox="0 0 100 100"><path fill="#f3f4fb" d="M38 12C58 2 86 12 92 34c5 20-6 40-20 54C58 102 24 98 12 78 0 58 16 22 38 12z"/><rect x="37" y="46" width="8" height="14" rx="4" fill="#181b28"/><rect x="57" y="46" width="8" height="14" rx="4" fill="#181b28"/></svg>',
+};
+const SKIN_META = [['classic','Classic','The original round face.'],['antenna','Antenna bot','Dome head, two springy antennas, dark visor.'],['boxy','Boxy bot','Square head, ears, single antenna.'],['cat','Cat','Ears with physics, whiskers.'],['ghost','Ghost','Wavy tail, floats a little more.'],['blob','Blob','Squashy drop — extra bounce.'],['custom','My image','Your own PNG/SVG silhouette.']];
+function skinFaceHtml(skin, custom){
+  if (skin === 'custom' && custom && custom.path) return `<img src="${fileUrl(custom.path)}?v=${custom.v||0}" alt="" style="width:100%;height:100%;object-fit:contain" draggable="false">`;
+  return SKIN_SVG[skin] || SKIN_SVG.classic;
+}
+function applySkin(){
+  const s = S.snap ? S.snap.settings : null; if (!s) return; const skin = s.skin || 'classic';
+  document.body.dataset.skin = skin;
+  document.querySelectorAll('.face').forEach(f => { if (skin === 'classic') { f.innerHTML = ''; f.classList.remove('skinned'); } else { f.classList.add('skinned'); const h = skinFaceHtml(skin, s.custom_skin); if (f.dataset.skinHtml !== h) { f.dataset.skinHtml = h; f.innerHTML = h; } } });
+}
+async function renderSkins(){
+  const v = $('#view-skins'); const s = S.snap.settings; const cur = s.skin || 'classic'; const c = s.custom_skin || {};
+  v.innerHTML = `<div class="section"><h4>Skin</h4><div class="note" style="margin:0 0 10px">Click one — Buddy changes instantly everywhere (notch, pet, this panel). All expressions, mouse-tracking and physics work on every skin.</div>
+    <div class="skins">${SKIN_META.map(([k,l,d]) => `<button class="skin ${cur===k?'active':''}" data-k="${k}"><div class="prev">${skinFaceHtml(k, c)}</div><b>${l}</b><small>${d}</small></button>`).join('')}</div></div>
+    <div class="section" id="sk_custom" style="display:${cur==='custom'?'':'none'}"><h4>My image</h4>
+      <div class="row"><button class="btn primary" id="sk_pick">Pick image…</button><span class="note" style="margin:0" id="sk_name">${c.path?esc(c.path.split(/[\\\\/]/).pop()):'A white silhouette PNG with transparent background works best (SVG/WebP ok).'}</span></div>
+      <div class="note" style="margin:8px 0 4px">Face box — where the eyes and mouth sit, in % of the image: left · top · width · height</div>
+      <div class="row">${['x','y','w','h'].map((k,i)=>`<input class="in" id="sk_cb${i}" type="number" min="0" max="100" value="${(c.box||[25,38,50,34])[i]}" style="width:64px">`).join('')}<label class="toggle" style="margin:0 0 0 8px"><input type="checkbox" id="sk_ink" ${c.ink==='light'?'checked':''}> Light eyes (for dark images)</label></div>
+      <div class="row" style="margin-top:8px"><button class="btn" id="sk_save">Apply box</button></div></div>`;
+  v.querySelectorAll('.skin').forEach(b => b.onclick = async () => { const k = b.dataset.k; v.querySelectorAll('.skin').forEach(x => x.classList.toggle('active', x===b)); $('#sk_custom').style.display = k==='custom' ? '' : 'none'; if (k === 'custom' && !(S.snap.settings.custom_skin||{}).path) { $('#sk_pick').click(); return; } await call('save_settings', { skin: k }); });
+  $('#sk_pick').onclick = async () => { const r = await call('skin_pick_image'); if (r && r.error) alert(r.error); else if (r) { S.snap.settings.custom_skin = r; S.snap.settings.skin = 'custom'; renderSkins(); applySkin(); } };
+  $('#sk_save').onclick = async () => { await call('save_settings', { skin: 'custom', custom_skin: { box: [0,1,2,3].map(i => +$('#sk_cb'+i).value), ink: $('#sk_ink').checked ? 'light' : 'dark' } }); toast('Applied.'); };
+}
+
+/* ---------- toast ---------- */
+let toastT; function toast(t){ const el = $('#toast'); el.classList.toggle('low', S.view && S.view!=='chat'); el.textContent=t; el.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(()=>el.classList.remove('show'), 2200); }
+
+/* ---------- events from Python ---------- */
+window.buddy = {
+  on(kind, p){
+    p = p || {};
+    switch(kind){
+      case 'chat.user': addUser(p.text, null, p.images); break;
+      case 'chat.begin': setBusy(true); beginAI(p.label + (p.agent ? ' · doing' : ''), p.provider, (providerByName(p.provider)||{}).accent); break;
+      case 'chat.text': streamText(p.chunk); break;
+      case 'chat.step': addStep(p.tool, p.detail, p.status); break;
+      case 'chat.done': finishAI(p.text); setBusy(false); break;
+      case 'login': loginCard(p); break;
+      case 'update': if (S.showUpd) S.showUpd(p); if (p.state === 'ready' && !document.getElementById('updcard')) { const m = document.createElement('div'); m.className = 'msg sys'; m.id = 'updcard'; m.innerHTML = `<div class="pill"><div class="face"></div><div>Buddy ${esc(p.version)} is ready ✨ <button class="chip" id="updnow" style="margin-left:6px">Restart &amp; update</button></div></div>`; chat.appendChild(m); m.querySelector('#updnow').onclick = () => call('update_apply'); applySkin(); scrollDown(); } break;
+      case 'chat.error': if(S.current){ if(S.text) finishAI(); else { S.current.remove(); S.current=null; } } setBusy(false); addSystem(p.message, !p.stopped); break;
+      case 'chat.system': addSystem(p.text, p.error); break;
+      case 'permission': addPermission(p); break;
+      case 'permission.done': settlePermission(p.id, p.behavior); break;
+      case 'chat.cleared': chat.innerHTML=''; empty(); break;
+      case 'provider': if(S.snap){ S.snap.provider = p; } renderProvider(p); break;
+      case 'cli': if (S.showCli && S.view === 'settings') S.showCli(p); break;
+      case 'chat.history': if(S.snap){ S.snap.chat = p.chat; } if(!S.busy){ S.current=null; renderHistory(p.chat); setTimeout(jumpToMessage, 60); } break;
+      case 'files': if(S.snap) S.snap.files = p.files; renderFiles(p.files); if(p.added&&p.added.length) toast(`Attached ${p.added.length} file${p.added.length>1?'s':''}`); break;
+      case 'tasks': if(S.snap) S.snap.tasks = p.tasks; if(S.view==='tasks') renderTasks(p.tasks); break;
+      case 'reminders': if(S.snap) S.snap.reminders = p.reminders; if(S.view==='tasks'){ planCounts(); renderReminderList(); } break;
+      case 'schedules': if(S.snap) S.snap.schedules = p.schedules; if(S.view==='tasks'){ planCounts(); renderScheduleList(); } break;
+      case 'jobs': if(S.snap) S.snap.jobs = p.jobs; if(S.view==='tasks'){ planCounts(); if (S.ptab==='activity') renderJobList(); } break;
+      case 'job.text': if(S.snap){ const j = (S.snap.jobs||[]).find(x => x.id === p.id); if (j) { j.output = p.output; if (p.steps) j.steps = p.steps; } } if(S.view==='tasks' && S.ptab==='activity'){ const el = document.querySelector(`.job[data-id="${p.id}"] .jout`); if (el) { el.textContent = String(p.output||'').trim().slice(-4000); } else renderJobList(); } break;
+      case 'workflows': if(S.snap) S.snap.workflows = p.workflows; if(S.view==='tasks'){ planCounts(); if (S.ptab==='workflows' && !document.querySelector('#wf_edit .pform')) renderWorkflows(); } break;
+      case 'pick.tip': showPickTip(p); break;
+      case 'quick.to_chat': addSystem('Quick action result:\n' + p.text); break;
+      case 'voice': S.listening = p.state === 'listening'; $('#mic').classList.toggle('on', S.listening); break;
+      case 'settings': if(S.snap) S.snap.settings = p.settings; $('#name').textContent = p.settings.assistant_name; renderMode(!!p.settings.agent_mode); applySkin(); if (S.view==='skins') renderSkins(); break;
+      case 'reminder': addSystem('⏰ Reminder: '+p.message); toast('⏰ ' + p.message); break;
+      case 'agent': if(p.state==='waiting'||p.state==='error') toast(`${p.agent[0].toUpperCase()+p.agent.slice(1)} ${p.state==='waiting'?'needs you':'hit an error'}`); break;
+      case 'show': if (!S.snap) { S.pendingView = p.view || 'chat'; break; } show(p.view||'chat'); input.focus(); break;
+    }
+  },
+  boot(snap){
+    S.snap = snap; $('#name').textContent = snap.settings.assistant_name; input.placeholder = `Message ${snap.settings.assistant_name}…`;
+    renderProvider(snap.provider); renderFiles(snap.files); renderHistory(snap.chat); setBusy(snap.busy); renderMode(!!snap.agent_mode); applySkin(); input.focus();
+    if (S.pendingView) { const v = S.pendingView; S.pendingView = null; show(v); }
+    call('login_status').then(st => { if (st) loginCard(st); }).catch(() => {});
+  }
+};
+async function init(){ const snap = await call('boot'); if (snap) window.buddy.boot(snap); }
+if (api()) init(); else window.addEventListener('pywebviewready', init);
+})();
+</script>
+</body>
+</html>

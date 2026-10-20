@@ -1,0 +1,7 @@
+#!/usr/bin/env node
+// fake `claude auth login`: prints the URL, waits for a pasted code
+if (process.argv[2] !== 'auth') { console.log('fake'); process.exit(0); }
+console.log('Opening browser to sign in…');
+console.log('If the browser didn\'t open, visit: https://claude.com/cai/oauth/authorize?code=true&client_id=x&state=abc');
+process.stdout.write('Paste code here if prompted > ');
+let buf = ''; process.stdin.on('data', d => { buf += d; if (buf.includes('\n')) { if (buf.trim() === 'GOODCODE') { console.log('Login successful'); process.exit(0); } console.log('Error: invalid code'); process.exit(1); } });

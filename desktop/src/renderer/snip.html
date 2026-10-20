@@ -1,0 +1,13 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Snip</title>
+<style>
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:rgba(0,0,0,.35);cursor:crosshair;user-select:none;font:12px system-ui}
+#sel{position:absolute;border:1.5px solid #7dd3fc;background:rgba(125,211,252,.12);display:none;box-shadow:0 0 0 9999px rgba(0,0,0,.35)}
+#hint{position:absolute;top:14px;left:50%;transform:translateX(-50%);background:#0c0d12;color:#eef0fa;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.12)}
+</style></head><body><div id="hint">Drag to select an area for Buddy · Esc to cancel</div><div id="sel"></div>
+<script>
+const { ipcRenderer } = require('electron'); let s = null; const sel = document.getElementById('sel');
+document.addEventListener('mousedown', e => { s = { x: e.clientX, y: e.clientY }; sel.style.display = 'block'; });
+document.addEventListener('mousemove', e => { if (!s) return; const x = Math.min(s.x, e.clientX), y = Math.min(s.y, e.clientY), w = Math.abs(e.clientX - s.x), h = Math.abs(e.clientY - s.y); Object.assign(sel.style, { left: x + 'px', top: y + 'px', width: w + 'px', height: h + 'px' }); });
+document.addEventListener('mouseup', e => { if (!s) return; const r = { x: Math.min(s.x, e.clientX), y: Math.min(s.y, e.clientY), w: Math.abs(e.clientX - s.x), h: Math.abs(e.clientY - s.y) }; s = null; ipcRenderer.send('snip:done', r.w > 4 && r.h > 4 ? r : null); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') ipcRenderer.send('snip:done', null); });
+</script></body></html>

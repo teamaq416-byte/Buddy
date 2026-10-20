@@ -1,0 +1,76 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Buddy quick</title>
+<style>
+:root{--bg:#1a1b20;--bg2:#222329;--bg3:#2b2c33;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.13);--fg:#ececf1;--muted:#a3a4ae;--dim:#6d6e79;--brand:#7c9cff;--brand-ink:#0f1220;--ok:#4ade80;--bad:#f87171;--font:"Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;--mono:"Cascadia Mono",Consolas,monospace}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:transparent;color:var(--fg);font:13px/1.5 var(--font);overflow:hidden;user-select:none;-webkit-font-smoothing:antialiased}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+.card{position:absolute;inset:6px;display:flex;flex-direction:column;background:var(--bg);border:1px solid var(--line2);border-radius:14px;box-shadow:0 18px 40px rgba(0,0,0,.5);overflow:hidden;animation:pop .16s cubic-bezier(.2,.9,.3,1.2)}
+@keyframes pop{from{opacity:0;transform:translateY(-4px) scale(.98)}}
+.top{display:flex;align-items:center;gap:8px;padding:9px 10px 7px 12px;-webkit-app-region:drag}
+.top b{font-weight:600;font-size:12.5px}.top .src{flex:1;color:var(--dim);font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.top button{-webkit-app-region:no-drag;width:24px;height:24px;border-radius:6px;display:grid;place-items:center;color:var(--muted)}.top button:hover{background:var(--bg3);color:var(--fg)}
+.top svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round}
+.sel{margin:0 12px;padding:6px 9px;border-radius:8px;background:var(--bg2);border:1px solid var(--line);color:var(--muted);font-size:12px;max-height:44px;overflow:hidden;white-space:pre-wrap;word-break:break-word;user-select:text}
+.sel[contenteditable=true]{outline:0;max-height:70px;overflow:auto;color:var(--fg)}
+.acts{display:flex;flex-wrap:wrap;gap:5px;padding:9px 12px 4px}
+.acts button{padding:4px 10px;border-radius:999px;border:1px solid var(--line2);font-size:12px;color:var(--muted);transition:background .12s,color .12s}
+.acts button:hover,.acts button.on{background:var(--bg3);color:var(--fg)}.acts button.on{border-color:rgba(124,156,255,.6)}
+.ask{display:flex;gap:6px;margin:4px 12px 0}
+.ask input{flex:1;min-width:0;background:var(--bg2);border:1px solid var(--line2);border-radius:9px;padding:6px 10px;color:var(--fg);font:12.5px var(--font);outline:0}.ask input:focus{border-color:rgba(124,156,255,.6)}
+.out{flex:1;margin:8px 12px 0;padding:9px 11px;border-radius:10px;background:var(--bg2);border:1px solid var(--line);overflow:auto;white-space:pre-wrap;word-break:break-word;user-select:text;font-size:13px;line-height:1.55}
+.out:empty::before{content:attr(data-hint);color:var(--dim)}
+.out .cur{display:inline-block;width:6px;height:13px;background:var(--brand);border-radius:2px;vertical-align:-2px;margin-left:2px;animation:bl .9s infinite}@keyframes bl{50%{opacity:.25}}
+.foot{display:flex;align-items:center;gap:6px;padding:8px 12px 10px}
+.foot .who{flex:1;color:var(--dim);font-size:11.5px}
+.btn{padding:5px 12px;border-radius:8px;border:1px solid var(--line2);background:var(--bg3);font-size:12px;font-weight:500}.btn:hover{filter:brightness(1.15)}.btn:disabled{opacity:.4;pointer-events:none}
+.btn.primary{background:var(--brand);color:var(--brand-ink);border-color:transparent;font-weight:600}
+kbd{font:10.5px var(--font);border:1px solid var(--line2);border-bottom-width:2px;border-radius:4px;padding:0 4px;color:var(--muted)}
+</style></head>
+<body>
+<div class="card">
+  <div class="top"><b>Quick action</b><span class="src" id="src"></span><button id="pin" title="Keep open"><svg viewBox="0 0 24 24"><path d="M12 17v5M9 3h6l-1 6 3 3H7l3-3z"/></svg></button><button id="close" title="Close (Esc)"><svg viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></svg></button></div>
+  <div class="sel" id="sel"></div>
+  <div class="acts" id="acts">
+    <button data-a="explain">Explain</button><button data-a="fix">Fix writing</button><button data-a="translate">Translate</button><button data-a="reply">Write reply</button><button data-a="summarise">Summarise</button><button data-a="shorter">Shorter</button><button data-a="code">Review code</button>
+  </div>
+  <div class="ask"><input id="ask" placeholder="Or ask anything about it… (Enter)" spellcheck="true"></div>
+  <div class="out" id="out" data-hint="Pick an action. Shortcut: Ctrl+Shift+Space in any app."></div>
+  <div class="foot"><span class="who" id="who"></span><button class="btn" id="chat" disabled>Open in chat</button><button class="btn" id="copy" disabled>Copy</button><button class="btn primary" id="replace" disabled title="Paste over your selection">Replace</button></div>
+</div>
+<script>
+const B = window.buddyBridge; const $ = s => document.querySelector(s); const api = (m, ...a) => B.call(m, a);
+const S = { text: '', from: 'none', out: '', live: false, provider: '' };
+function setSel(p) {
+  S.text = p.text || ''; S.from = p.from || 'none'; S.out = ''; S.live = false; $('#out').textContent = ''; buttons();
+  const sel = $('#sel'); sel.textContent = S.text || ''; sel.contentEditable = S.text ? 'false' : 'true';
+  if (!S.text) sel.dataset.ph = '1';
+  $('#src').textContent = S.from === 'selection' ? '· from your selection' : S.from === 'clipboard' ? '· from the clipboard' : '· type or paste text below';
+  $('#who').textContent = p.provider ? '' : ''; $('#replace').style.display = S.from === 'selection' ? '' : 'none';
+  document.querySelectorAll('#acts button').forEach(b => b.classList.remove('on'));
+  setTimeout(() => (S.text ? $('#ask') : sel).focus(), 30);
+}
+function buttons() { const has = !!S.out.trim() && !S.live; $('#copy').disabled = !has; $('#replace').disabled = !has; $('#chat').disabled = !has; }
+async function run(action, extra) {
+  if (!S.text) { const t = $('#sel').textContent.trim(); if (!t) { $('#sel').focus(); return; } S.text = t; await api('quick_set_text', t); }
+  document.querySelectorAll('#acts button').forEach(b => b.classList.toggle('on', b.dataset.a === action));
+  S.out = ''; S.live = true; $('#out').innerHTML = '<span class="cur"></span>'; buttons();
+  const r = await api('quick_run', action, extra || ''); $('#who').textContent = r && r.provider ? 'via ' + r.provider[0].toUpperCase() + r.provider.slice(1) : '';
+}
+document.querySelectorAll('#acts button').forEach(b => b.onclick = () => run(b.dataset.a, b.dataset.a === 'translate' ? '' : ''));
+$('#ask').onkeydown = e => { if (e.key === 'Enter' && $('#ask').value.trim()) { run('ask', $('#ask').value.trim()); } };
+$('#close').onclick = () => { api('quick_stop'); api('quick_close'); };
+$('#copy').onclick = async () => { await api('quick_copy', S.out); $('#copy').textContent = 'Copied'; setTimeout(() => $('#copy').textContent = 'Copy', 1200); };
+$('#replace').onclick = () => api('quick_replace', S.out);
+$('#chat').onclick = () => api('quick_to_chat', S.out);
+let pinned = false; $('#pin').onclick = async () => { pinned = await api('quick_pin', !pinned); $('#pin').style.color = pinned ? 'var(--brand)' : ''; };
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { api('quick_stop'); api('quick_close'); } if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && S.out && !S.live) $('#replace').click(); });
+B.onEvent((k, p) => {
+  if (k === 'quick.open') setSel(p || {});
+  else if (k === 'quick.text') { if (!S.live) return; S.out += p.chunk; $('#out').textContent = S.out; $('#out').insertAdjacentHTML('beforeend', '<span class="cur"></span>'); $('#out').scrollTop = 1e9; }
+  else if (k === 'quick.done') { S.live = false; if (p.stopped) return; S.out = (p.text || S.out).trim(); $('#out').textContent = p.ok ? S.out : '⚠️ ' + S.out; if (!p.ok) S.out = ''; buttons(); }
+});
+api('quick_state').then(p => { if (p && p.text) setSel(p); });
+window.__quick = S;
+</script>
+</body></html>

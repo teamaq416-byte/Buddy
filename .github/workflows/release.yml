@@ -1,0 +1,39 @@
+name: Release
+# Push a tag like v2.0.1 → tests run, the Windows installer + portable zip + auto-update payload are built and published as
+# a GitHub Release. Every installed Buddy checks the latest release and updates itself.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: desktop } }
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22, cache: npm, cache-dependency-path: desktop/package-lock.json }
+      - run: npm ci
+      - name: Version from tag + update repo
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          VER="${GITHUB_REF_NAME#v}"
+          node -e "const f='package.json',p=require('./'+f);p.version='$VER';p.buddy=p.buddy||{};p.buddy.updateRepo='${{ github.repository }}';require('fs').writeFileSync(f,JSON.stringify(p,null,2)+'\n')"
+      - name: Tests
+        run: |
+          sudo apt-get install -y zip unzip >/dev/null
+          node tests/cli.js && node tests/memory.js && node tests/remote.js && node tests/gchat.js && node tests/login.js && node tests/fixes.js && node tests/setup.js && node tests/hooks.js && node tests/update.js && node tests/planner.js && node tests/assistant.js
+          xvfb-run -a -s "-screen 0 1280x800x24" node tests/e2e.js out
+      - run: npm run setup
+      - run: npm run package:win
+      - uses: softprops/action-gh-release@v3
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: |
+            desktop/dist/Buddy-Setup.cmd
+            desktop/dist/Buddy-app.zip
+            desktop/dist/update.json
+            desktop/dist/Buddy-*-win-x64-portable.zip
+          generate_release_notes: true

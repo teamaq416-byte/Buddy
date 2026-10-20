@@ -1,0 +1,13 @@
+#!/usr/bin/env node
+// fake Antigravity CLI: first call (no token yet) prints a sign-in URL, "signs in", then answers; prompts are argv only
+const fs = require('fs'), path = require('path');
+const tok = path.join(process.env.GEMINI_CLI_HOME || require('os').homedir(), '.agy-fake-token');
+const a = process.argv.slice(2); const p = a[a.indexOf('-p') + 1] || '';
+if (!fs.existsSync(tok)) {
+  if (process.env.AGY_FAKE_NOAUTH) { console.error('Error: not authenticated. Sign in required.'); process.exit(1); }
+  console.error('Opening browser for Google Sign-In: https://accounts.google.com/o/oauth2/auth?client_id=agy&redirect_uri=http%3A%2F%2Flocalhost%3A5555');
+  setTimeout(() => { fs.writeFileSync(tok, 'ok'); process.stdout.write('OK\n'); process.exit(0); }, 400); return;
+}
+if (process.env.AGY_FAKE_SOFTDENY && !a.includes('--dangerously-skip-permissions')) { console.error('jetski: no output produced — a tool required the "command" permission that headless mode cannot prompt for, so it was auto-denied.'); process.exit(0); }
+const mode = a.includes('plan') ? 'plan' : a.includes('--dangerously-skip-permissions') ? 'do-skip' : 'do';
+process.stdout.write('\x1b[1mAgy\x1b[0m says: ' + p.split('\n').pop() + ' [' + mode + ']\n');

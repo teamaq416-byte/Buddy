@@ -1,0 +1,5 @@
+#!/usr/bin/env node
+if (process.argv[2] !== 'login') { console.log('fake'); process.exit(0); }
+console.log('Starting local login server on http://localhost:1455.');
+console.log('If your browser did not open, navigate to this URL to authenticate:\n\nhttps://auth.openai.com/oauth/authorize?response_type=code&client_id=app_x');
+setTimeout(() => { console.log('Successfully logged in'); process.exit(0); }, 600);

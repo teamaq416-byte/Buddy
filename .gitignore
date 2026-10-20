@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+build/
+dist/
+Buddy-data/
+.pytest_cache/
+node_modules/
+desktop/dist/
+*.log
+desktop/out/
